@@ -175,6 +175,12 @@ _contract_build() {
   done
 }
 
+_contract_install_common() {
+  install \
+    -dm755 \
+    "${_lib_dir}"
+}
+
 _contract_install_sources() {
   local \
     _contracts_dir="${1}" \
@@ -185,6 +191,7 @@ _contract_install_sources() {
     _contract_deployed_networks=() \
     _install_dir \
     _version
+  _contract_install_common
   _contract_setup \
     "${_contracts_dir}" \
     "${_target_contract}"
@@ -216,6 +223,7 @@ _contract_install_deployments_config() {
   )
   _msg_info \
     "${_msg[*]}"
+  _contract_install_common
   _contract_setup \
     "${_contracts_dir}" \
     "${_target_contract}"
@@ -250,6 +258,7 @@ _contract_install_deployments_solc() {
   )
   _msg_info \
     "${_msg[*]}"
+  _contract_install_common
   _contract_setup \
     "${_contracts_dir}" \
     "${_target_contract}"
@@ -294,6 +303,7 @@ _contract_install_deployments_hardhat() {
   )
   _msg_info \
     "${_msg[*]}"
+  _contract_install_common
   _contract_setup \
     "${_contracts_dir}" \
     "${_target_contract}"
@@ -365,12 +375,12 @@ _evm_make() {
     )
   elif [[ "${_target_command}" == \
             "build" || \
-           "${_target_command}" == \
+          "${_target_command}" == \
             "install_sources" || \
-           "${_target_command}" == \
+          "${_target_command}" == \
             "install_deployments_config" || \
-           "${_target_command}" == \
-             "install_deployments" ]]; then
+          "${_target_command}" == \
+            "install_deployments" ]]; then
     _target_actions+=(
       "${_target_command}"
     )
@@ -524,9 +534,7 @@ while \
     w) override_work_dir="$( \
          realpath \
            "${OPTARG}")" ;;
-    o) override_lib_dir="$( \
-         realpath \
-           "${OPTARG}")" ;;
+    o) override_lib_dir="${OPTARG}" ;;
     b) override_compiler_backend="${OPTARG}" ;;
     c) override_color="y" ;;
     v) override_quiet="n" ;;
