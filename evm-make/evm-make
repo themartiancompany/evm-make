@@ -151,7 +151,7 @@ _contract_build() {
       if [[ "${_build}" == "true" ]]; then
         solidity-compiler \
           "${_compiler_opts[@]}" \
-          "${_contract_directory}/${_version}/${_sol}"
+          "${_contract_dir}/${_version}/${_sol}"
       fi
     done
   done
@@ -277,11 +277,11 @@ _contract_install_deployments_hardhat() {
 
 _contracts_get() {
   local \
-    _contracts_directory="${1}" \
+    _contracts_dir="${1}" \
     _contract \
     _contracts_dirs=()
-  _contracts_dirs+(
-    "${_contracts_directory}/"*
+  _contracts_dirs+=(
+    "${_contracts_dir}/"*
   )
   for _contract in "${_contracts_dirs[@]}"; do
     _contracts+=(
@@ -393,13 +393,13 @@ _set_overrides() {
     "$(_get_date_human)"
   _set_override \
     "project" \
-    "directory" \
+    "dir" \
     "$(realpath \
          "$(pwd)")"
   _set_override \
     "work" \
     "dir" \
-    "$(_cache_dir_auto_detect)"
+    "$(_work_dir_auto_detect)"
   _set_override \
     "lib" \
     "dir" \
@@ -414,7 +414,7 @@ _set_overrides() {
 # $1: exit status number.
 _usage() {
   local \
-    _exit="${1}" \
+    _exit="${1}"
   IFS='' \
     read \
       -r \
