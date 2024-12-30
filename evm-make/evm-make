@@ -1,0 +1,544 @@
+#!/usr/bin/env bash
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+_bin="$( \
+  dirname \
+    "$( \
+      command \
+        -v \
+	  "env")")"
+_lib="${_bin}/../lib"
+source \
+  "${_lib}/libcrash-bash/crash-bash"
+
+# shellcheck disable=SC2034
+_global_variables() {
+  make_date=""
+  target_command=""
+  project_dir=""
+  work_dir=""
+  compiler_backend=""
+  lib_dir=""
+  command_args=()
+  color=""
+  quiet=""
+}
+
+_requirements() {
+  _check_cmd \
+    'solidity-compiler'
+}
+
+_get_conf_dir_path() {
+  local \
+    _dir
+  _dir="${HOME}/.config/evm-make"
+  echo \
+    "${_dir}"
+}
+
+_work_dir_auto_detect() {
+  local \
+    _dir
+  _dir="${HOME}/.cache/evm-make"
+  echo \
+    "${_dir}"
+}
+
+_versions_get() {
+  local \
+    _contract_dirs=()
+  _contract_dirs+=(
+    "$@"
+  )
+  _re='^[0-9]+$'
+  for _dir in "${_contract_dirs[@]}"; do
+    if [[ ${_target_key} =~ ${_re} ]] ; then
+      _contract_versions+=(
+        "$(basename \
+             "${_dir}")"
+      )
+    fi
+  done
+}
+
+_contract_setup() {
+  local 
+    _contracts_dir="${1}" \
+    _target_contract="${2}" \
+    _network
+  _sol="${_target_contract}.sol"
+  _abi="${_target_contract}.abi.json"
+  _bytecode="${_target_contract}.bin"
+  _json="${_target_contract}.json"
+  _contract_dir="${_contracts_dir}/${_target_contract}"
+  _contract_deployments_dir="${_contract_dir}/deployments"
+  _contract_dirs=(
+    "${_contract_dir}/"*
+  )
+  _versions_get \
+    "${_contract_dirs[@]}"
+  _contract_deployed_networks_config_dirs=(
+    "${_contract_deployments_dir}/"*
+  )
+  for _network \
+    in "${_contract_deployed_networks_config_dirs[@]}"; do
+    _contract_deployed_networks+=(
+      "$(basename \
+           "${_network}")"
+    )
+  done
+}
+
+_contract_build() {
+  local 
+    _contracts_dir="${1}" \
+    _target_contract="${2}" \
+    _compiler_backend="${3}" \
+    _work_dir="${4}" \
+    _compiler_opts=() \
+    _contract_dirs=() \
+    _contract_versions=() \
+    _contract_deployed_networks=() \
+    _build \
+    _build_dir \
+    _compiler_work_dir \
+    _config_file \
+    _deployment
+    _deployment_dir \
+    _network \
+    _version
+  _contract_setup \
+    "${_contracts_dir}" \
+    "${_target_contract}"
+  for _network in "${_contract_deployed_networks[@]}"; do
+    _deployment_dir="${_contract_deployments_dir}/${_network}"
+    _config_file="${_deployment_dir}/config.sh"
+    source \
+      "${_config_file}"
+    for _version in "${!contract_address[@]}"; do
+      _deployment="${_network}/${_version}"
+      _build_dir="${_work_dir}/${_deployment}"
+      _compiler_work_dir="${_build_dir}/build"
+      _compiler_opts=(
+        -v
+        -b
+          "${_compiler_backend}"
+        -C
+          "${solc_version["${_version}"]}"
+        -e
+          "${evm_version["${_version}"]}"
+        -w
+          "${_compiler_work_dir}"
+        -o
+          "${_build_dir}"
+      )
+      mkdir \
+        -p \
+        "${_compiler_work_dir}"
+      _build="true"
+      if [[ "${_compiler_backend}" == "solc" ]]; then
+        if [[ -e "${_build_dir}/${_abi}" ]] && \
+           [[ -e "${_build_dir}/${_bytecode}" ]]; then \
+  	 _build="false"
+        fi
+      elif [[ "${_compiler_backend}" == "hardhat" ]]; then
+        if [[ -e "${_build_dir}/contracts/${_sol}/${_json}" ]]; then
+  	 _build="false"
+        fi
+      fi
+      if [[ "${_build}" == "true" ]]; then
+        solidity-compiler \
+          "${_compiler_opts[@]}" \
+          "${_contract_directory}/${_version}/${_sol}"
+      fi
+    done
+  done
+}
+
+_contract_install_source() {
+  local 
+    _contracts_dir="${1}" \
+    _target_contract="${2}" \
+    _lib_dir="${3}" \
+    _contract_dirs=() \
+    _contract_versions=() \
+    _contract_deployed_networks=() \
+    _install_dir \
+    _version
+  _contract_setup \
+    "${_contracts_dir}" \
+    "${_target_contract}"
+  for _version in "${_contract_versions[@]}"; do \
+    _install_dir="${_lib_dir}/contracts"
+    install \
+      -Dm644 \
+      "${_contract_dir}/${_version}/${_sol}" \
+      "${_install_dir}/${_target_contract}/${_version}/${_sol}"
+  done
+}
+
+_contract_install_deployments_config() {
+  local 
+    _contracts_dir="${1}" \
+    _target_contract="${2}" \
+    _lib_dir="${3}" \
+    _contract_dirs=() \
+    _contract_versions=() \
+    _contract_deployed_networks=() \
+    _install_dir \
+    _network
+  _contract_setup \
+    "${_contracts_dir}" \
+    "${_target_contract}"
+  for _network in ${_contract_deployed_networks[@]}; do
+    _deployment_dir="${_contract_deployments_dir}/${_network}"
+    _config_file="${_deployment_dir}/config.sh"
+    _install_dir="${_lib_dir}/deployments/${_target_contract}/${_network}"
+    install \
+      -Dm644 \
+      "${_deployment_dir}/config.sh" \
+      "${_install_dir}/config.sh"
+  done
+}
+
+_contract_install_deployments_solc() {
+  local 
+    _contracts_dir="${1}" \
+    _target_contract="${2}" \
+    _lib_dir="${3}" \
+    _work_dir="${4}" \
+    _contract_dirs=() \
+    _contract_versions=() \
+    _contract_deployed_networks=() \
+    _config_file \
+    _build_dir \
+    _deployment \
+    _install_dir \
+    _network
+  _contract_setup \
+    "${_contracts_dir}" \
+    "${_target_contract}"
+  for _network in ${_contract_deployed_networks[@]}; do
+    _deployment_dir="${_contract_deployments_dir}/${_network}"
+    _config_file="${_deployment_dir}/config.sh"
+    source \
+      "${_config_file}"
+    for _version in "${!contract_address[@]}"; do
+      _deployment="${_network}/${_version}"
+      _build_dir="${_work_dir}/${_deployment}"
+      _install_dir="${_lib_dir}/deployments/${_target_contract}/${_deployment}"
+      install \
+        -Dm644 \
+        "${_build_dir}/${_abi}" \
+        "${_install_dir}/${_abi}"
+      install \
+        -Dm644 \
+        "${_build_dir}/${_bytecode}" \
+        "${_install_dir}/${_bytecode}"
+    done
+  done
+}
+
+_contract_install_deployments_hardhat() {
+  local 
+    _contracts_dir="${1}" \
+    _target_contract="${2}" \
+    _lib_dir="${3}" \
+    _work_dir="${4}" \
+    _contract_dirs=() \
+    _contract_versions=() \
+    _contract_deployed_networks=() \
+    _config_file \
+    _build_dir \
+    _deployment \
+    _install_dir \
+    _network
+  _contract_setup \
+    "${_contracts_dir}" \
+    "${_target_contract}"
+  for _network in ${_contract_deployed_networks}; do
+    _deployment_dir="${_contract_deployments_dir}/${_network}"
+    _config_file="${_deployment_dir}/config.sh";
+    source \
+      "${_config_file}"
+    for _version in "${!contract_address[@]}"; do
+      _deployment="${_network}/${_version}"
+      _build_dir="${_work_dir}/${_deployment}"
+      _install_dir="${_lib_dir}/deployments/${_target_contract}/${_deployment}"
+      install \
+        -Dm644 \
+        "${_build_dir}/contracts/${_sol}/${_json}" \
+        "${_install_dir}/${_json}"
+    done
+  done
+}
+
+_contracts_get() {
+  local \
+    _contracts_directory="${1}" \
+    _contract \
+    _contracts_dirs=()
+  _contracts_dirs+(
+    "${_contracts_directory}/"*
+  )
+  for _contract in "${_contracts_dirs[@]}"; do
+    _contracts+=(
+      "$(basename \
+           "${_contract}")"
+    )
+  done
+}
+
+_evm_make() {
+  local \
+    _target_command="${1}" \
+    _project_dir="${2}" \
+    _work_dir="${3}" \
+    _compiler_backend="${4}" \
+    _lib_dir="${5}" \
+    _target_actions=() \
+    _oldpwd \
+    _contract \
+    _contract_deployments_dir \
+    _contracts=() \
+    _contracts_dir \
+    _sol \
+    _abi \
+    _bytecode \
+    _json \
+    _msg=() \
+    _command_args=()
+  shift \
+    5
+  _command_args+=(
+    "$@"
+  )
+  _contracts_dir="contracts"
+  _oldpwd="$( \
+    pwd)"
+  if [[ "${_target_command}" == "install" ]]; then
+    _target_actions+=(
+      "install_sources"
+      "install_deployments_config"
+      "install_deployments"
+    )
+  elif [[ "${_target_command}" == \
+            "build" || \
+           "${_target_command}" == \
+            "install_sources" || \
+           "${_target_command}" == \
+            "install_deployments_config" || \
+           "${_target_command}" == \
+             "install_deployments" ]]; then
+    _target_actions+=(
+      "${_target_command}"
+    )
+  fi
+  cd \
+    "${_project_dir}"
+  _contracts_get \
+    "${_contracts_dir}"
+  for _contract in "${_contracts[@]}"; do
+    if [[ " ${_target_actions[*]} " == \
+            *" build "* ]]; then
+      _contract_build \
+        "${_contracts_dir}" \
+        "${_contract}" \
+        "${_compiler_backend}" \
+        "${_work_dir}"
+    fi
+    if [[ " ${_target_actions[*]} " == \
+            *" install_sources "* ]]; then
+      _contract_install_source \
+        "${_contracts_dir}" \
+        "${_contract}" \
+        "${_lib_dir}"
+    fi
+    if [[ " ${_target_actions[*]} " == \
+            *" install_deployments_config "* ]]; then
+      _contract_install_deployments_config \
+        "${_contracts_dir}" \
+        "${_contract}" \
+        "${_lib_dir}"
+    fi
+    if [[ " ${_target_actions[*]} " == \
+            *" install_deployments "* ]]; then
+      "_contract_install_deployments_${_compiler_backend}" \
+        "${_contracts_dir}" \
+        "${_contract}" \
+        "${_lib_dir}" \
+        "${_work_dir}"
+    fi
+  done
+  cd \
+    "${_oldpwd}"
+}
+
+_set_overrides() {
+  if [[ -v override_quiet ]]; then
+    quiet="${override_quiet}"
+  elif [[ -z "${quiet}" ]]; then
+    quiet="y"
+  fi
+  if [[ -v override_color ]]; then
+    color="${override_color}"
+  elif [[ -z "${color}" ]]; then
+    color="n"
+  fi
+  _set_override \
+    "make" \
+    "date" \
+    "$(_get_date_human)"
+  _set_override \
+    "project" \
+    "directory" \
+    "$(realpath \
+         "$(pwd)")"
+  _set_override \
+    "work" \
+    "dir" \
+    "$(_cache_dir_auto_detect)"
+  _set_override \
+    "lib" \
+    "dir" \
+    "$(pwd)/build"
+  _set_override \
+    "compiler" \
+    "backend" \
+    "solc"
+}
+
+# Show help usage, with an exit status.
+# $1: exit status number.
+_usage() {
+  local \
+    _exit="${1}" \
+  IFS='' \
+    read \
+      -r \
+      -d '' \
+      _usage_text << \
+        ENDUSAGETEXT || true
+EVM toolchain build and install tool.
+
+Usage:
+  $(_get "app" "name")
+    [options]
+    <command>
+
+  commands:
+    build
+    install
+    install_sources
+    install_deployments_config
+    install_deployments
+    Default: $(_get "target" "command" )
+
+  options:
+     -C <project_dir>       Project directory.
+                            Default: $(_get "project" "dir")
+     -b <compiler_backend>  Backend for solidity-compiler;
+                            can be 'solc' or 'hardhat'.
+                            Default: $(_get "compiler" "backend")
+     -w <work_dir>          Work directory.
+                            Default: $(_get "work" "dir")
+     -o <lib_dir>           Install directory.
+                            Default: $(_get "lib" "dir")
+
+     -h                     This message.
+     -c                     Enable color output
+     -v                     Enable verbose output
+ENDUSAGETEXT
+  _printf \
+    '%s\n' \
+    "${_usage_text}"
+  exit \
+    "${_exit}"
+}
+
+# Shows configuration options.
+_show_config() {
+  _msg_info "${app_name} configuration"
+  _msg_info "                Make date:   $(_get "make" "date")"
+  _msg_info "           Target command:   $(_get "target" "command")"
+  _msg_info "        Project directory:   $(_get "project" "dir")"
+  _msg_info "           Work directory:   $(_get "work" "dir")"
+  _msg_info "        Install directory:   $(_get "lib" "dir")"
+  _msg_info "         Compiler backend:   $(_get "compiler" "backend")"
+}
+
+_globals
+_global_variables
+_requirements
+# shellcheck disable=SC2034
+while \
+  getopts \
+    'C:w:o:b:cvh?' \
+    arg; do
+  case \
+    "${arg}" in
+    C) override_project_dir="${OPTARG}" ;;
+    w) override_work_dir="${OPTARG}" ;;
+    o) override_lib_dir="${OPTARG}" ;;
+    b) override_compiler_backend="${OPTARG}" ;;
+    c) override_color="y" ;;
+    v) override_quiet="n" ;;
+    h|?) _set_overrides && \
+         _usage \
+           0 ;;
+    *)
+    _msg_error \
+      "Invalid argument '${arg}'" \
+      0
+    _usage \
+      1
+    ;;
+  esac
+done
+shift \
+  $(( \
+    OPTIND - 1 \
+  ))
+if (( $# < 1 )); then
+  _set \
+    "target" \
+    "command" \
+    "build"
+fi
+if (( 0 < $# )); then
+  _set \
+    "target" \
+    "command" \
+    "${1}"
+fi
+shift \
+  1 || \
+  true
+command_args+=(
+  "$@"
+)
+_set_overrides
+_show_config
+app_opts=(
+  "$(_get \
+       "target" \
+       "command")"
+  "$(_get \
+       "project" \
+       "dir")"
+  "$(_get \
+       "work" \
+       "dir")"
+  "$(_get \
+       "compiler" \
+       "backend")"
+  "$(_get \
+       "lib" \
+       "dir")"
+)
+_evm_make \
+  "${app_opts[@]}"
+
+# vim:set sw=2 sts=-1 et:
