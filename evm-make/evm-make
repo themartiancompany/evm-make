@@ -48,23 +48,28 @@ _work_dir_auto_detect() {
 
 _versions_get() {
   local \
-    _contract_dirs=()
+    _contract_dirs=() \
+    _dir \
+    _dir_basename \
+    _re
   _contract_dirs+=(
     "$@"
   )
-  _re='^[0-9]+$'
+  _re='^[0-9][0-9.]*$'
   for _dir in "${_contract_dirs[@]}"; do
-    if [[ ${_target_key} =~ ${_re} ]] ; then
+    _dir_basename="$( \
+      basename \
+        "${_dir}")"
+    if [[ ${_dir_basename} =~ ${_re} ]] ; then
       _contract_versions+=(
-        "$(basename \
-             "${_dir}")"
+        "${_dir_basename}"
       )
     fi
   done
 }
 
 _contract_setup() {
-  local 
+  local \
     _contracts_dir="${1}" \
     _target_contract="${2}" \
     _network
@@ -74,11 +79,17 @@ _contract_setup() {
   _json="${_target_contract}.json"
   _contract_dir="${_contracts_dir}/${_target_contract}"
   _contract_deployments_dir="${_contract_dir}/deployments"
+  _msg_info \
+    "Contract dir: ${_contract_dir}"
   _contract_dirs=(
     "${_contract_dir}/"*
   )
+  _msg_info \
+    "Found contract directories: ${_contract_dirs}"
   _versions_get \
     "${_contract_dirs[@]}"
+  _msg_info \
+    "Found versions: ${_contract_versions[*]}"
   _contract_deployed_networks_config_dirs=(
     "${_contract_deployments_dir}/"*
   )
@@ -92,7 +103,7 @@ _contract_setup() {
 }
 
 _contract_build() {
-  local 
+  local \
     _contracts_dir="${1}" \
     _target_contract="${2}" \
     _compiler_backend="${3}" \
@@ -105,10 +116,12 @@ _contract_build() {
     _build_dir \
     _compiler_work_dir \
     _config_file \
-    _deployment
+    _deployment \
     _deployment_dir \
     _network \
     _version
+  _msg_info \
+    "Building contract '${_target_contract}'"
   _contract_setup \
     "${_contracts_dir}" \
     "${_target_contract}"
@@ -121,8 +134,13 @@ _contract_build() {
       _deployment="${_network}/${_version}"
       _build_dir="${_work_dir}/${_deployment}"
       _compiler_work_dir="${_build_dir}/build"
-      _compiler_opts=(
-        -v
+      _compiler_opts=()
+      if [[ "${quiet}" == "n" ]]; then
+        _compiler_opts+=(
+          -v
+        )
+      fi
+      _compiler_opts+=(
         -b
           "${_compiler_backend}"
         -C
@@ -157,8 +175,8 @@ _contract_build() {
   done
 }
 
-_contract_install_source() {
-  local 
+_contract_install_sources() {
+  local \
     _contracts_dir="${1}" \
     _target_contract="${2}" \
     _lib_dir="${3}" \
@@ -170,6 +188,8 @@ _contract_install_source() {
   _contract_setup \
     "${_contracts_dir}" \
     "${_target_contract}"
+  _msg_info \
+    "Installing sources for '${_target_contract}'"
   for _version in "${_contract_versions[@]}"; do \
     _install_dir="${_lib_dir}/contracts"
     install \
@@ -180,15 +200,22 @@ _contract_install_source() {
 }
 
 _contract_install_deployments_config() {
-  local 
+  local \
     _contracts_dir="${1}" \
     _target_contract="${2}" \
     _lib_dir="${3}" \
     _contract_dirs=() \
     _contract_versions=() \
     _contract_deployed_networks=() \
+    _msg=() \
     _install_dir \
     _network
+  _msg=(
+    "Installing deployments configurations"
+    "for '${_target_contract}'"
+  )
+  _msg_info \
+    "${_msg[*]}"
   _contract_setup \
     "${_contracts_dir}" \
     "${_target_contract}"
@@ -204,7 +231,7 @@ _contract_install_deployments_config() {
 }
 
 _contract_install_deployments_solc() {
-  local 
+  local \
     _contracts_dir="${1}" \
     _target_contract="${2}" \
     _lib_dir="${3}" \
@@ -217,6 +244,12 @@ _contract_install_deployments_solc() {
     _deployment \
     _install_dir \
     _network
+  _msg=(
+    "Installing solc deployments artifacts"
+    "for '${_target_contract}'"
+  )
+  _msg_info \
+    "${_msg[*]}"
   _contract_setup \
     "${_contracts_dir}" \
     "${_target_contract}"
@@ -242,7 +275,7 @@ _contract_install_deployments_solc() {
 }
 
 _contract_install_deployments_hardhat() {
-  local 
+  local \
     _contracts_dir="${1}" \
     _target_contract="${2}" \
     _lib_dir="${3}" \
@@ -255,6 +288,12 @@ _contract_install_deployments_hardhat() {
     _deployment \
     _install_dir \
     _network
+  _msg=(
+    "Installing hardhat deployments artifacts"
+    "for '${_target_contract}'"
+  )
+  _msg_info \
+    "${_msg[*]}"
   _contract_setup \
     "${_contracts_dir}" \
     "${_target_contract}"
@@ -351,7 +390,7 @@ _evm_make() {
     fi
     if [[ " ${_target_actions[*]} " == \
             *" install_sources "* ]]; then
-      _contract_install_source \
+      _contract_install_sources \
         "${_contracts_dir}" \
         "${_contract}" \
         "${_lib_dir}"
@@ -479,9 +518,15 @@ while \
     arg; do
   case \
     "${arg}" in
-    C) override_project_dir="${OPTARG}" ;;
-    w) override_work_dir="${OPTARG}" ;;
-    o) override_lib_dir="${OPTARG}" ;;
+    C) override_project_dir="$( \
+         realpath \
+           "${OPTARG}")" ;;
+    w) override_work_dir="$( \
+         realpath \
+           "${OPTARG}")" ;;
+    o) override_lib_dir="$( \
+         realpath \
+           "${OPTARG}")" ;;
     b) override_compiler_backend="${OPTARG}" ;;
     c) override_color="y" ;;
     v) override_quiet="n" ;;
