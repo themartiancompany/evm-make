@@ -482,6 +482,7 @@ _set_overrides() {
     "compiler" \
     "backend" \
     "solc"
+  _cache_clean_auto_detect
 }
 
 # Show help usage, with an exit status.
