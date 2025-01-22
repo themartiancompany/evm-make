@@ -20,6 +20,7 @@ _global_variables() {
   work_dir=""
   compiler_backend=""
   lib_dir=""
+  cache_clean=""
   command_args=()
   color=""
   quiet=""
@@ -108,6 +109,7 @@ _contract_build() {
     _target_contract="${2}" \
     _compiler_backend="${3}" \
     _work_dir="${4}" \
+    _cache_clean="${5}" \
     _compiler_opts=() \
     _contract_dirs=() \
     _contract_versions=() \
@@ -138,6 +140,11 @@ _contract_build() {
       if [[ "${quiet}" == "n" ]]; then
         _compiler_opts+=(
           -v
+        )
+      fi
+      if [[ "${_cache_clean}" == "y" ]]; then
+        _compiler_opts+=(
+          -l
         )
       fi
       _compiler_opts+=(
@@ -347,6 +354,7 @@ _evm_make() {
     _work_dir="${3}" \
     _compiler_backend="${4}" \
     _lib_dir="${5}" \
+    _cache_clean="${6}" \
     _target_actions=() \
     _oldpwd \
     _contract \
@@ -360,7 +368,7 @@ _evm_make() {
     _msg=() \
     _command_args=()
   shift \
-    5
+    6
   _command_args+=(
     "$@"
   )
@@ -396,7 +404,8 @@ _evm_make() {
         "${_contracts_dir}" \
         "${_contract}" \
         "${_compiler_backend}" \
-        "${_work_dir}"
+        "${_work_dir}" \
+        "${_cache_clean}"
     fi
     if [[ " ${_target_actions[*]} " == \
             *" install_sources "* ]]; then
@@ -423,6 +432,22 @@ _evm_make() {
   done
   cd \
     "${_oldpwd}"
+}
+
+_cache_clean_auto_detect() {
+  local \
+    _clean \
+    _backend
+  _backend="${compiler_backend}"
+  if [[ "${_backend}" == "hardhat" ]]; then
+    _clean="y"
+  elif [[ "${_backend}" == "solc" ]]; then
+    _clean="n"
+  fi
+  _set_override \
+    "cache" \
+    "clean" \
+    "${_clean}"
 }
 
 _set_overrides() {
@@ -487,14 +512,19 @@ Usage:
 
   options:
      -C <project_dir>       Project directory.
-                            Default: $(_get "project" "dir")
+                            Default: ${project_dir}
      -b <compiler_backend>  Backend for solidity-compiler;
                             can be 'solc' or 'hardhat'.
-                            Default: $(_get "compiler" "backend")
+                            Default: ${compiler_backend}
      -w <work_dir>          Work directory.
-                            Default: $(_get "work" "dir")
+                            Default: ${work_dir}
      -o <lib_dir>           Install directory.
-                            Default: $(_get "lib" "dir")
+                            Default: ${lib_dir}
+     -l <y/n>               Whether to pass the clean cache
+                            option to solidity-compiler.
+                            When the backend is 'hardhat'
+                            defaults to 'y', while for 'solc' is 'n'.
+                            Default: ${cache_clean}
 
      -h                     This message.
      -c                     Enable color output
@@ -516,6 +546,7 @@ _show_config() {
   _msg_info "           Work directory:   $(_get "work" "dir")"
   _msg_info "        Install directory:   $(_get "lib" "dir")"
   _msg_info "         Compiler backend:   $(_get "compiler" "backend")"
+  _msg_info "              Cache clean:   $(_get "cache" "clean")"
 }
 
 _globals
@@ -524,7 +555,7 @@ _requirements
 # shellcheck disable=SC2034
 while \
   getopts \
-    'C:w:o:b:cvh?' \
+    'C:w:o:b:lcvh?' \
     arg; do
   case \
     "${arg}" in
@@ -536,6 +567,7 @@ while \
            "${OPTARG}")" ;;
     o) override_lib_dir="${OPTARG}" ;;
     b) override_compiler_backend="${OPTARG}" ;;
+    l) override_cache_clean="${OPTARG}" ;;
     c) override_color="y" ;;
     v) override_quiet="n" ;;
     h|?) _set_overrides && \
@@ -575,21 +607,12 @@ command_args+=(
 _set_overrides
 _show_config
 app_opts=(
-  "$(_get \
-       "target" \
-       "command")"
-  "$(_get \
-       "project" \
-       "dir")"
-  "$(_get \
-       "work" \
-       "dir")"
-  "$(_get \
-       "compiler" \
-       "backend")"
-  "$(_get \
-       "lib" \
-       "dir")"
+  "${target_command}"
+  "${project_dir}"
+  "${work_dir}"
+  "${compiler_backend}"
+  "${lib_dir}"
+  "${cache_clean}"
 )
 _evm_make \
   "${app_opts[@]}"
