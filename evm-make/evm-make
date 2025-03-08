@@ -318,11 +318,20 @@ _contract_install_deployments_hardhat() {
     _contract_dirs=() \
     _contract_versions=() \
     _contract_deployed_networks=() \
+    _install_opts=()
     _config_file \
     _build_dir \
     _deployment \
     _install_dir \
     _network
+  if [[ "${quiet}" == "n" ]]; then
+    _install_opts+=(
+      -v
+    )
+  fi
+  install_opts+=(
+    -Dm644
+  )
   _msg=(
     "Installing hardhat deployments artifacts"
     "for '${_target_contract}'"
@@ -343,7 +352,7 @@ _contract_install_deployments_hardhat() {
       _build_dir="${_work_dir}/${_deployment}"
       _install_dir="${_lib_dir}/deployments/${_target_contract}/${_deployment}"
       install \
-        -Dm644 \
+        "${_install_opts[@]}" \
         "${_build_dir}/contracts/${_sol}/${_json}" \
         "${_install_dir}/${_json}"
     done
