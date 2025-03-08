@@ -40,6 +40,7 @@ _global_variables() {
   compiler_backend=""
   lib_dir=""
   cache_clean=""
+  rebuild_skip=""
   command_args=()
   color=""
   quiet=""
@@ -129,6 +130,7 @@ _contract_build() {
     _compiler_backend="${3}" \
     _work_dir="${4}" \
     _cache_clean="${5}" \
+    _rebuild_skip="${6}" \
     _compiler_opts=() \
     _contract_dirs=() \
     _contract_versions=() \
@@ -182,14 +184,16 @@ _contract_build() {
         -p \
         "${_compiler_work_dir}"
       _build="true"
-      if [[ "${_compiler_backend}" == "solc" ]]; then
-        if [[ -e "${_build_dir}/${_abi}" ]] && \
-           [[ -e "${_build_dir}/${_bytecode}" ]]; then \
-  	 _build="false"
-        fi
-      elif [[ "${_compiler_backend}" == "hardhat" ]]; then
-        if [[ -e "${_build_dir}/contracts/${_sol}/${_json}" ]]; then
-  	 _build="false"
+      if [[ "${_rebuild_skip}" == "y" ]]; then
+        if [[ "${_compiler_backend}" == "solc" ]]; then
+          if [[ -e "${_build_dir}/${_abi}" ]] && \
+             [[ -e "${_build_dir}/${_bytecode}" ]]; then \
+           _build="false"
+          fi
+        elif [[ "${_compiler_backend}" == "hardhat" ]]; then
+          if [[ -e "${_build_dir}/contracts/${_sol}/${_json}" ]]; then
+           _build="false"
+          fi
         fi
       fi
       if [[ "${_build}" == "true" ]]; then
@@ -383,6 +387,7 @@ _evm_make() {
     _compiler_backend="${4}" \
     _lib_dir="${5}" \
     _cache_clean="${6}" \
+    _rebuild_skip="${7}" \
     _target_actions=() \
     _oldpwd \
     _contract \
@@ -433,7 +438,8 @@ _evm_make() {
         "${_contract}" \
         "${_compiler_backend}" \
         "${_work_dir}" \
-        "${_cache_clean}"
+        "${_cache_clean}" \
+        "${_rebuild_skip}"
     fi
     if [[ " ${_target_actions[*]} " == \
             *" install_sources "* ]]; then
@@ -507,6 +513,10 @@ _set_overrides() {
     "dir" \
     "$(pwd)/build"
   _set_override \
+    "rebuild" \
+    "skip" \
+    "n"
+  _set_override \
     "compiler" \
     "backend" \
     "solc"
@@ -554,6 +564,9 @@ Usage:
                             When the backend is 'hardhat'
                             defaults to 'y', while for 'solc' is 'n'.
                             Default: ${cache_clean}
+     -f <y/n>               If 'y', skip rebuilding the contracts
+                            if artifacts are found already in the
+                            directory.
 
      -h                     This message.
      -c                     Enable color output
@@ -576,6 +589,7 @@ _show_config() {
   _msg_info "        Install directory:   $(_get "lib" "dir")"
   _msg_info "         Compiler backend:   $(_get "compiler" "backend")"
   _msg_info "              Cache clean:   $(_get "cache" "clean")"
+  _msg_info "             Skip rebuild:   $(_get "rebuild" "skip")"
 }
 
 _globals
@@ -584,7 +598,7 @@ _requirements
 # shellcheck disable=SC2034
 while \
   getopts \
-    'C:w:o:b:lcvh?' \
+    'C:w:o:b:l:f:cvh?' \
     arg; do
   case \
     "${arg}" in
@@ -597,6 +611,7 @@ while \
     o) override_lib_dir="${OPTARG}" ;;
     b) override_compiler_backend="${OPTARG}" ;;
     l) override_cache_clean="${OPTARG}" ;;
+    f) override_rebuild_skip="${OPTARG}" ;;
     c) override_color="y" ;;
     v) override_quiet="n" ;;
     h|?) _set_overrides && \
@@ -642,6 +657,7 @@ app_opts=(
   "${compiler_backend}"
   "${lib_dir}"
   "${cache_clean}"
+  "${rebuild_skip}"
 )
 _evm_make \
   "${app_opts[@]}"
