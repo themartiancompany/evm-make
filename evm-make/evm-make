@@ -218,8 +218,18 @@ _contract_build() {
 }
 
 _contract_install_common() {
+  local \
+    _install_opts=()
+  if [[ "${quiet}" == "n" ]]; then
+    _install_opts+=(
+      -v
+    )
+  fi
+  _install_opts+=(
+    -dm755
+  )
   install \
-    -dm755 \
+    "${_install_opts[@]}" \
     "${_lib_dir}"
 }
 
@@ -232,7 +242,16 @@ _contract_install_sources() {
     _contract_versions=() \
     _contract_deployed_networks=() \
     _install_dir \
+    _install_opts=()
     _version
+  if [[ "${quiet}" == "n" ]]; then
+    _install_opts+=(
+      -v
+    )
+  fi
+  _install_opts+=(
+    -Dm644
+  )
   _contract_install_common
   _contract_setup \
     "${_contracts_dir}" \
@@ -242,7 +261,7 @@ _contract_install_sources() {
   for _version in "${_contract_versions[@]}"; do \
     _install_dir="${_lib_dir}/contracts"
     install \
-      -Dm644 \
+      "${_install_opts[@]}" \
       "${_contract_dir}/${_version}/${_sol}" \
       "${_install_dir}/${_target_contract}/${_version}/${_sol}"
   done
