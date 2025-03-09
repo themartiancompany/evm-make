@@ -324,7 +324,7 @@ _contract_install_deployments_solc() {
   fi
   _msg=(
     "Installing solc deployments artifacts"
-    "for '${_target_contract}'"
+    "for '${_target_contract}'."
   )
   _msg_info \
     "${_msg[*]}"
@@ -379,7 +379,7 @@ _contract_install_deployments_hardhat() {
   )
   _msg=(
     "Installing hardhat deployments artifacts"
-    "for '${_target_contract}'"
+    "for '${_target_contract}'."
   )
   _msg_info \
     "${_msg[*]}"
@@ -387,7 +387,9 @@ _contract_install_deployments_hardhat() {
   _contract_setup \
     "${_contracts_dir}" \
     "${_target_contract}"
-  for _network in ${_contract_deployed_networks}; do
+  _msg_info \
+    "${_contract_deployed_networks[@]}"
+  for _network in ${_contract_deployed_networks[@]}; do
     _deployment_dir="${_contract_deployments_dir}/${_network}"
     _config_file="${_deployment_dir}/config.sh";
     source \
