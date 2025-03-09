@@ -242,7 +242,7 @@ _contract_install_sources() {
     _contract_versions=() \
     _contract_deployed_networks=() \
     _install_dir \
-    _install_opts=()
+    _install_opts=() \
     _version
   if [[ "${quiet}" == "n" ]]; then
     _install_opts+=(
