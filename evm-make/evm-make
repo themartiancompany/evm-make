@@ -141,8 +141,8 @@ _contract_build() {
     _config_file \
     _deployment \
     _deployment_dir \
-    _json_path \
-    _sol_path \
+    _path_project_json \
+    _path_project_sol \
     _network \
     _version
   _msg_info \
@@ -193,22 +193,25 @@ _contract_build() {
            _build="false"
           fi
         elif [[ "${_compiler_backend}" == "hardhat" ]]; then
-          _json_path="${_build_dir}/contracts/${_sol}/${_json}"
+          _path_build_json="${_build_dir}/contracts/${_sol}/${_json}"
           _msg=(
-            "Looking for '${_json_path}'"
+            "Looking for '${_path_build_json}'"
           )
           _msg_info \
             "${_msg[*]}"
-          if [[ -e "${_json_path}" ]]; then
+          if [[ -e "${_path_build_json}" ]]; then
            _build="false"
           fi
         fi
       fi
       if [[ "${_build}" == "true" ]]; then
-        _sol_path="${_contract_dir}/${_version}/${_sol}"
+        _path_project_sol="${_contract_dir}/${_version}/${_sol}"
+        _msg=(
+          "Building '${_path_project_sol}'"
+        )
         solidity-compiler \
           "${_compiler_opts[@]}" \
-          "${_sol_path}"
+          "${_path_project_sol}"
       fi
     done
   done
@@ -331,12 +334,21 @@ _contract_install_deployments_hardhat() {
     _contract_dirs=() \
     _contract_versions=() \
     _contract_deployed_networks=() \
+    _install_opts=()
     _config_file \
     _build_dir \
-    _json_build_path \
+    _path_build_json \
     _deployment \
     _install_dir \
     _network
+  if [[ "${quiet}" == "n" ]]; then
+    _install_opts+=(
+      -v
+    )
+  fi
+  install_opts+=(
+    -Dm644
+  )
   _msg=(
     "Installing hardhat deployments artifacts"
     "for '${_target_contract}'"
@@ -356,10 +368,10 @@ _contract_install_deployments_hardhat() {
       _deployment="${_network}/${_version}"
       _build_dir="${_work_dir}/${_deployment}"
       _install_dir="${_lib_dir}/deployments/${_target_contract}/${_deployment}"
-      _json_build_path="${_build_dir}/contracts/${_sol}/${_json}"
+      _path_build_json="${_build_dir}/contracts/${_sol}/${_json}"
       install \
-        -Dm644 \
-        "${_json_build_path}" \
+        "${_install_opts[@]}" \
+        "${path_build_json}" \
         "${_install_dir}/${_json}"
     done
   done
