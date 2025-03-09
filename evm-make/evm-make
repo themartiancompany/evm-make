@@ -353,7 +353,7 @@ _contract_install_deployments_hardhat() {
     _contract_dirs=() \
     _contract_versions=() \
     _contract_deployed_networks=() \
-    _install_opts=()
+    _install_opts=() \
     _config_file \
     _build_dir \
     _path_build_json \
