@@ -141,6 +141,8 @@ _contract_build() {
     _config_file \
     _deployment \
     _deployment_dir \
+    _json_path \
+    _sol_path \
     _network \
     _version
   _msg_info \
@@ -191,15 +193,22 @@ _contract_build() {
            _build="false"
           fi
         elif [[ "${_compiler_backend}" == "hardhat" ]]; then
-          if [[ -e "${_build_dir}/contracts/${_sol}/${_json}" ]]; then
+          _json_path="${_build_dir}/contracts/${_sol}/${_json}"
+          _msg=(
+            "Looking for '${_json_path}'"
+          )
+          _msg_info \
+            "${_msg[*]}"
+          if [[ -e "${_json_path}" ]]; then
            _build="false"
           fi
         fi
       fi
       if [[ "${_build}" == "true" ]]; then
+        _sol_path="${_contract_dir}/${_version}/${_sol}"
         solidity-compiler \
           "${_compiler_opts[@]}" \
-          "${_contract_dir}/${_version}/${_sol}"
+          "${_sol_path}"
       fi
     done
   done
@@ -324,6 +333,7 @@ _contract_install_deployments_hardhat() {
     _contract_deployed_networks=() \
     _config_file \
     _build_dir \
+    _json_build_path \
     _deployment \
     _install_dir \
     _network
@@ -346,9 +356,10 @@ _contract_install_deployments_hardhat() {
       _deployment="${_network}/${_version}"
       _build_dir="${_work_dir}/${_deployment}"
       _install_dir="${_lib_dir}/deployments/${_target_contract}/${_deployment}"
+      _json_build_path="${_build_dir}/contracts/${_sol}/${_json}"
       install \
         -Dm644 \
-        "${_build_dir}/contracts/${_sol}/${_json}" \
+        "${_json_build_path}" \
         "${_install_dir}/${_json}"
     done
   done
