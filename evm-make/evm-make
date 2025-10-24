@@ -186,6 +186,7 @@ _contract_build() {
         -p \
         "${_compiler_work_dir}"
       _build="true"
+      echo "hi"
       if [[ "${_rebuild_skip}" == "y" ]]; then
         if [[ "${_compiler_backend}" == "solc" ]]; then
           if [[ -e "${_build_dir}/${_abi}" ]] && \
@@ -581,7 +582,7 @@ _usage() {
 EVM toolchain build and install tool.
 
 Usage:
-  $(_get "app" "name")
+  ${app_name}
     [options]
     <command>
 
@@ -591,7 +592,7 @@ Usage:
     install_sources
     install_deployments_config
     install_deployments
-    Default: $(_get "target" "command" )
+    Default: ${target_command}
 
   options:
      -C <project_dir>       Project directory.
@@ -626,14 +627,14 @@ ENDUSAGETEXT
 # Shows configuration options.
 _show_config() {
   _msg_info "${app_name} configuration"
-  _msg_info "                Make date:   $(_get "make" "date")"
-  _msg_info "           Target command:   $(_get "target" "command")"
-  _msg_info "        Project directory:   $(_get "project" "dir")"
-  _msg_info "           Work directory:   $(_get "work" "dir")"
-  _msg_info "        Install directory:   $(_get "lib" "dir")"
-  _msg_info "         Compiler backend:   $(_get "compiler" "backend")"
-  _msg_info "              Cache clean:   $(_get "cache" "clean")"
-  _msg_info "             Skip rebuild:   $(_get "rebuild" "skip")"
+  _msg_info "                Make date:   ${make_date}"
+  _msg_info "           Target command:   ${target_command}"
+  _msg_info "        Project directory:   ${project_dir}"
+  _msg_info "           Work directory:   ${work_dir}"
+  _msg_info "        Install directory:   ${lib_dir}"
+  _msg_info "         Compiler backend:   ${compiler_backend}"
+  _msg_info "              Cache clean:   ${cache_clean}"
+  _msg_info "             Skip rebuild:   ${rebuild_skip}"
 }
 
 _globals
@@ -662,8 +663,11 @@ while \
          _usage \
            0 ;;
     *)
+    _msg=(
+      "Invalid argument '${arg}'."
+    )
     _msg_error \
-      "Invalid argument '${arg}'" \
+      "${_msg[*]}" \
       0
     _usage \
       1
@@ -675,16 +679,10 @@ shift \
     OPTIND - 1 \
   ))
 if (( $# < 1 )); then
-  _set \
-    "target" \
-    "command" \
-    "build"
+  target_command="build"
 fi
 if (( 0 < $# )); then
-  _set \
-    "target" \
-    "command" \
-    "${1}"
+  target_command="${1}"
 fi
 shift \
   1 || \

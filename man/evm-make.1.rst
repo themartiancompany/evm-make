@@ -63,11 +63,11 @@ Options
                      can be 'solc' or 'hardhat'.
 -w work_dir          Work directory.
 -o lib_dir           Install directory.
--l y/n               Whether to pass the clean cache
+-l <y/n>             Whether to pass the clean cache
                      option to solidity-compiler.
                      When the backend is 'hardhat'
                      defaults to 'y', while for 'solc' is 'n'.
--f y/n               If 'y', skip rebuilding the contracts
+-f <y/n>             If 'y', skip rebuilding the contracts
                      if artifacts are found already in the
                      directory.
 
