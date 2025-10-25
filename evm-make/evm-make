@@ -555,7 +555,7 @@ _project_dir_check() {
       1
   fi
   _realpath="$( \
-    _realpath \
+    realpath \
       "${project_dir}")"
   if [[ -e "${_realpath}" ]]; then
     project_dir="${_realpath}"
