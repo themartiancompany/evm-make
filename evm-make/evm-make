@@ -215,6 +215,7 @@ _contract_build() {
         )
         _msg_info \
           "${_msg[*]}"
+        echo "mammt"
         solidity-compiler \
           "${_compiler_opts[@]}" \
           "${_path_project_sol}"
