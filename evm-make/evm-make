@@ -186,7 +186,6 @@ _contract_build() {
         -p \
         "${_compiler_work_dir}"
       _build="true"
-      echo "hi"
       if [[ "${_rebuild_skip}" == "y" ]]; then
         if [[ "${_compiler_backend}" == "solc" ]]; then
           if [[ -e "${_build_dir}/${_abi}" ]] && \
@@ -201,18 +200,30 @@ _contract_build() {
           _msg_info \
             "${_msg[*]}"
           if [[ -e "${_path_build_json}" ]]; then
-           _build="false"
+            _build="false"
           fi
         fi
       fi
       if [[ "${_build}" == "true" ]]; then
-        _path_project_sol="${_contract_dir}/${_version}/${_sol}"
+        _path_project_sol="$( \
+          realpath \
+            "${_contract_dir}/${_version}/${_sol}")"
         _msg=(
           "Building '${_path_project_sol}'."
+          "Running 'solidity-compiler' with"
+          "options '${_compiler_opts[*]}'."
         )
+        _msg_info \
+          "${_msg[*]}"
         solidity-compiler \
           "${_compiler_opts[@]}" \
           "${_path_project_sol}"
+      elif [[ "${_build}" == "false" ]]; then
+        _msg=(
+          "Skipping build of '${_path_project_sol}'."
+        )
+        _msg_info \
+          "${_msg[*]}"
       fi
     done
   done
@@ -529,6 +540,28 @@ _cache_clean_auto_detect() {
     "${_clean}"
 }
 
+_project_dir_check() {
+  local \
+    _msg=() \
+    _realpath
+  if [[ ! -e "${project_dir}" ]]; then
+    _msg+=(
+      "Project directory"
+      "'${project_dir}'"
+      "does not exist."
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      1
+  fi
+  _realpath="$( \
+    _realpath \
+      "${project_dir}")"
+  if [[ -e "${_realpath}" ]]; then
+    project_dir="${_realpath}"
+  fi
+}
+
 _set_overrides() {
   if [[ -v override_quiet ]]; then
     quiet="${override_quiet}"
@@ -549,6 +582,7 @@ _set_overrides() {
     "dir" \
     "$(realpath \
          "$(pwd)")"
+  _project_dir_check
   _set_override \
     "work" \
     "dir" \
@@ -647,9 +681,7 @@ while \
     arg; do
   case \
     "${arg}" in
-    C) override_project_dir="$( \
-         realpath \
-           "${OPTARG}")" ;;
+    C) override_project_dir="${OPTARG}" ;;
     w) override_work_dir="$( \
          realpath \
            "${OPTARG}")" ;;
