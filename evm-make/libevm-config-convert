@@ -79,8 +79,17 @@ _libevm_config_convert() {
           "${solc_version["${_contract_version}"]}"
       '$ARGS.named'
     )
-    jq \
-      "${_jq_opts[@]}"
+    _config="$(
+      jq \
+        "${_jq_opts[@]}")"
+    if [[ "${_output_file}" != "" ]]; then
+      jq \
+        "${_jq_opts[@]}" > \
+        "${_output_file}"
+    else
+      jq \
+        "${_jq_opts[@]}"
+    fi
   done
 }
 
@@ -120,6 +129,48 @@ _show_config() {
   _msg_info "             Convert date:   ${make_date}"
   _msg_info "       Configuration file:   ${config_file}"
   _msg_info "              Output file:   ${output_file}"
+}
+
+_output_file_check() {
+  local \
+    _output_dir
+  if [[ "${output_file}" != "" ]]; then
+    _output_dir="$(
+      dirname \
+        "${output_file}")"
+    if [[ ! -d "${_output_dir}" ]]; then
+      _msg=(
+        "Output directory"
+        "'${_output_dir}' does not exist."
+      )
+      _msg_error \
+        "${_msg[*]}" \
+        1
+    fi
+  fi
+}
+
+_set_overrides() {
+  if [[ -v override_quiet ]]; then
+    quiet="${override_quiet}"
+  elif [[ -z "${quiet}" ]]; then
+    quiet="y"
+  fi
+  if [[ -v override_color ]]; then
+    color="${override_color}"
+  elif [[ -z "${color}" ]]; then
+    color="n"
+  fi
+  _set_override \
+    "make" \
+    "date" \
+    "$(_get_date_human)"
+  _output_file_check
+  _set_override \
+    "project" \
+    "dir" \
+    "$(realpath \
+         "$(pwd)")"
 }
 
 _globals
