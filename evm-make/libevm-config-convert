@@ -57,6 +57,12 @@ _libevm_config_convert() {
     evm_version \
     solc_version \
     _contract_version \
+    _contract_address_jq_opts=() \
+    _contract_address_json \
+    _evm_version_jq_opts=() \
+    _evm_version_json \
+    _solc_version_jq_opts=() \
+    _solc_version_json \
     _jq_opts=()
   _msg=(
     "Reading '${_config_file}'."
@@ -65,35 +71,65 @@ _libevm_config_convert() {
     "${_msg[*]}"
   source \
     "${_config_file}" 
+  _contract_address_jq_opts+=(
+    -n
+  )
+  _evm_version_jq_opts+=(
+    -n
+  )
+  _solc_version_jq_opts+=(
+    -n
+  )
   for _contract_version in "${!evm_version[@]}"; do
-    _jq_opts=(
-      -n
+    _contract_address_jq_opts+=(
       --arg
-        "contract_version"
-          "${_contract_version}"
-      --arg
-        "contract_address"
+        "${_contract_version}"
           "${contract_address["${_contract_version}"]}"
-      --arg
-        "evm_version"
-          "${evm_version["${_contract_version}"]}"
-      --arg
-        "solc_version"
-          "${solc_version["${_contract_version}"]}"
-      '{ "'${_contract_version}'": $ARGS.named }'
+      '$ARGS.named'
     )
-    _config="$(
+    _evm_version_jq_opts+=(
+      --arg
+        "${_contract_version}"
+          "${solc_version["${_contract_version}"]}"
+      '$ARGS.named'
+    )
+    _solc_version_jq_opts+=(
+      --arg
+        "${_contract_version}"
+          "${solc_version["${_contract_version}"]}"
+      '$ARGS.named'
+    )
+    _contract_address_json="$(
       jq \
-        "${_jq_opts[@]}")"
-    if [[ "${_output_file}" != "" ]]; then
+        "${_contract_address_jq_opts[@]}")"
+    _evm_version_json="$(
       jq \
-        "${_jq_opts[@]}" > \
-        "${_output_file}"
-    else
+        "${_evm_version_jq_opts[@]}")"
+    _solc_version_json="$(
       jq \
-        "${_jq_opts[@]}"
-    fi
+        "${_evm_version_jq_opts[@]}")"
   done
+  _jq_opts=(
+    -n
+    --argjson
+      "contract-address"
+        "${_contract_address_json}"
+    --argjson
+      "evm-version"
+        "${_evm_version_json}"
+    --argjson
+      "solc-version"
+        "${_solc_version_json}"
+    '$ARGS.named'
+  )
+  if [[ "${_output_file}" != "" ]]; then
+    jq \
+      "${_jq_opts[@]}" > \
+      "${_output_file}"
+  else
+    jq \
+      "${_jq_opts[@]}"
+  fi
 }
 
 _usage() {
