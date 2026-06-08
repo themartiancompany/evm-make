@@ -46,6 +46,8 @@ _global_variables() {
   lib_dir=""
   cache_clean=""
   rebuild_skip=""
+  target_languages=()
+  target_languages_amount=""
   command_args=()
   color=""
   quiet=""
@@ -312,8 +314,11 @@ _contract_install_deployments_config() {
     _install_dir="${_lib_dir}/deployments/${_target_contract}/${_network}"
     install \
       -Dm644 \
-      "${_deployment_dir}/config.sh" \
+      "${_config_file}" \
       "${_install_dir}/config.sh"
+    if [[ " ${target_languages[*]} " == *" javascript "* ]]; then
+      true
+    fi
   done
 }
 
@@ -450,6 +455,8 @@ _evm_make() {
     _lib_dir="${5}" \
     _cache_clean="${6}" \
     _rebuild_skip="${7}" \
+    _target_languages_amount="${8}" \
+    _target_languages=() \
     _target_actions=() \
     _oldpwd \
     _contract \
@@ -463,13 +470,20 @@ _evm_make() {
     _msg=() \
     _command_args=()
   shift \
-    6
+    8
+  for _index \
+    in $(seq \
+           "$(( "${_target_languages_amount}" -1 ))"); do
+    _target_languages+=(
+      "${1}"
+    )
+    shift
+  done
   _command_args+=(
     "$@"
   )
   _contracts_dir="contracts"
-  _oldpwd="$(
-    pwd)"
+  _oldpwd="${PWD}"
   if [[ "${_target_command}" == "install" ]]; then
     _target_actions+=(
       "install_sources"
@@ -579,6 +593,13 @@ _set_overrides() {
   elif [[ -z "${color}" ]]; then
     color="n"
   fi
+  if [[ "${target_languages[*]}" == "" ]]; then
+    target_languages=(
+      "bash"
+      "javascript"
+    )
+  fi
+  target_languages_amount="${#target_languages[@]}"
   _set_override \
     "make" \
     "date" \
@@ -649,6 +670,9 @@ Usage:
                             When the backend is 'hardhat'
                             defaults to 'y', while for 'solc' is 'n'.
                             Default: ${cache_clean}
+     -L <language>          Target languages for the configuration file.
+                            It can be 'bash' or 'javascript'.
+                            Default: ${target_languages[@]}
      -f <y/n>               If 'y', skip rebuilding the contracts
                             if artifacts are found already in the
                             directory.
@@ -675,6 +699,7 @@ _show_config() {
   _msg_info "         Compiler backend:   ${compiler_backend}"
   _msg_info "              Cache clean:   ${cache_clean}"
   _msg_info "             Skip rebuild:   ${rebuild_skip}"
+  _msg_info "         Target languages:   ${rebuild_skip}"
 }
 
 _globals
@@ -683,7 +708,7 @@ _requirements
 # shellcheck disable=SC2034
 while \
   getopts \
-    'C:w:o:b:l:f:cvh?' \
+    'C:w:o:b:l:L:f:cvh?' \
     arg; do
   case \
     "${arg}" in
@@ -699,6 +724,10 @@ while \
       override_compiler_backend="${OPTARG}" ;;
     l)
       override_cache_clean="${OPTARG}" ;;
+    L)
+      target_languages+=(
+        "${OPTARG}"
+      ) ;;
     f)
       override_rebuild_skip="${OPTARG}" ;;
     c)
@@ -746,6 +775,8 @@ app_opts=(
   "${lib_dir}"
   "${cache_clean}"
   "${rebuild_skip}"
+  "${target_languages_amount}"
+  "${target_languages[@]}"
 )
 _evm_make \
   "${app_opts[@]}"
