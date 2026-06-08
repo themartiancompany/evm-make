@@ -295,9 +295,15 @@ _contract_install_deployments_config() {
     _contract_dirs=() \
     _contract_versions=() \
     _contract_deployed_networks=() \
+    _libevm_config_convert_opts=() \
     _msg=() \
     _install_dir \
     _network
+  if [[ "${quiet}" == "n" ]]; then
+    _libevm_config_convert_opts+=(
+      -v
+    )
+  fi
   _msg=(
     "Installing deployments configurations"
     "for '${_target_contract}'"
@@ -317,7 +323,10 @@ _contract_install_deployments_config() {
       "${_config_file}" \
       "${_install_dir}/config.sh"
     if [[ " ${target_languages[*]} " == *" javascript "* ]]; then
-      true
+      libevm-config-convert \
+        "${_libevm_config_convert_opts[@]}" \
+        "${_config_file}" \
+        "${_install_dir}/config.json"
     fi
   done
 }
