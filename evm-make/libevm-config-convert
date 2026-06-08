@@ -166,11 +166,6 @@ _set_overrides() {
     "date" \
     "$(_get_date_human)"
   _output_file_check
-  _set_override \
-    "project" \
-    "dir" \
-    "$(realpath \
-         "$(pwd)")"
 }
 
 _globals
