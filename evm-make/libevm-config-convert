@@ -39,6 +39,7 @@ source \
 _global_variables() {
   config_file=""
   output_file=""
+  quiet=""
 }
 
 _requirements() {
@@ -49,11 +50,17 @@ _requirements() {
 _libevm_config_convert() {
   local \
     _config_file="${1}" \
+    _output_file="${2}" \
     contract_address \
     evm_version \
     solc_version \
     _contract_version \
     _jq_opts=()
+  _msg=(
+    "Reading '${_config_file}'."
+  )
+  _msg_info \
+    "${_msg[*]}"
   source \
     "${_config_file}" 
   for _contract_version in "${!evm_version[@]}"; do
@@ -156,10 +163,15 @@ if (( "${#}" < 1 )); then
   _usage \
     1
 fi
-
+config_file="${1}"
+if (( 1 < "${#}" )); then
+  output_file="${2}"
+fi
+_set_overrides
+_show_config
 app_opts=(
   "${config_file}"
+  "${output_file}"
 )
-
 _libevm_config_convert \
   "${app_opts[@]}"
