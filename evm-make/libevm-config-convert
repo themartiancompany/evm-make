@@ -69,15 +69,18 @@ _libevm_config_convert() {
     _jq_opts=(
       -n
       --arg
-        "contract-address"
+        "contract_version"
+          "${_contract_version}"
+      --arg
+        "contract_address"
           "${contract_address["${_contract_version}"]}"
       --arg
-        "evm-version"
+        "evm_version"
           "${evm_version["${_contract_version}"]}"
       --arg
-        "solc-version"
+        "solc_version"
           "${solc_version["${_contract_version}"]}"
-      '$ARGS.named'
+      "${_contract_version}: "'$ARGS.named'
     )
     _config="$(
       jq \
