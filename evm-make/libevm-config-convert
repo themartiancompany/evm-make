@@ -37,6 +37,7 @@ source \
   "${_lib}/libcrash-bash/crash-bash"
 
 _global_variables() {
+  make_date=""
   config_file=""
   output_file=""
   color=""
@@ -66,6 +67,7 @@ _libevm_config_convert() {
     "${_config_file}" 
   for _contract_version in "${!evm_version[@]}"; do
     _jq_opts=(
+      -n
       --arg
         "contract-address"
           "${contract_address["${_contract_version}"]}"
