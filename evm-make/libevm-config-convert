@@ -80,7 +80,7 @@ _libevm_config_convert() {
       --arg
         "solc_version"
           "${solc_version["${_contract_version}"]}"
-      "${_contract_version}: "'$ARGS.named'
+      "{ ${_contract_version}: "'$ARGS.named }'
     )
     _config="$(
       jq \
