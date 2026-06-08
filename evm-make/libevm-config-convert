@@ -1,0 +1,161 @@
+#!/usr/bin/env bash
+
+# SPDX-License-Identifier: AGPL-3.0
+
+#    -----------------------------------------------------
+#    Copyright © 2024, 2025, 2026  Pellegrino Prevete
+#
+#    All rights reserved
+#    -----------------------------------------------------
+#
+#    This program is free software: you can redistribute
+#    it and/or modify it under the terms of the
+#    GNU Affero General Public License as published by
+#    the Free Software Foundation, either version 3 of
+#    the License, or (at your option) any later version.
+#
+#    This program is distributed in the hope that it
+#    will be useful, but WITHOUT ANY WARRANTY;
+#    without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#    See the GNU Affero General Public License for
+#    more details.
+#
+#    You should have received a copy of the
+#    GNU Affero General Public License
+#    along with this program.
+#    If not, see <https://www.gnu.org/licenses/>.
+
+_bin="$(
+  dirname \
+    "$(
+      command \
+        -v \
+        "env")")"
+_lib="${_bin}/../lib"
+source \
+  "${_lib}/libcrash-bash/crash-bash"
+
+_global_variables() {
+  app_name="config-convert"
+  config_file=""
+  output_file=""
+}
+
+_libevm_config_convert() {
+  local \
+    _config_file="${1}" \
+    contract_address \
+    evm_version \
+    solc_version \
+    _contract_version \
+    _jq_opts=()
+  source \
+    "${_config_file}" 
+  for _contract_version in "${!evm_version[@]}"; do
+    _jq_opts=(
+      --arg
+        "contract-address"
+          "${contract_address["${_contract_version}"]}"
+      --arg
+        "evm-version"
+          "${evm_version["${_contract_version}"]}"
+      --arg
+        "solc-version"
+          "${solc_version["${_contract_version}"]}"
+      '$ARGS.named'
+    )
+    jq \
+      "${_jq_opts[@]}"
+  done
+}
+
+_usage() {
+  local \
+    _exit="${1}"
+  IFS='' \
+    read \
+      -r \
+      -d '' \
+      _usage_text << \
+        ENDUSAGETEXT || true
+Converts an LibEVM Bash configuration file to json.
+
+Usage:
+  ${app_name}
+    [options]
+    <config-file>
+  ( <output-file> )
+
+  options:
+     -h                     This message.
+     -c                     Enable color output
+     -v                     Enable verbose output
+
+ENDUSAGETEXT
+  _printf \
+    '%s\n' \
+    "${_usage_text}"
+  exit \
+    "${_exit}"
+}
+
+# Shows configuration options.
+_show_config() {
+  _msg_info "${app_name} configuration"
+  _msg_info "             Convert date:   ${make_date}"
+  _msg_info "       Configuration file:   ${config_file}"
+  _msg_info "              Output file:   ${output_file}"
+}
+
+_globals
+_global_variables
+_requirements
+# shellcheck disable=SC2034
+while \
+  getopts \
+    'cvh?' \
+    arg; do
+  case \
+    "${arg}" in
+    c)
+      override_color="y" ;;
+    v)
+      override_quiet="n" ;;
+    h|?)
+      _set_overrides
+      _usage \
+        0 ;;
+    *)
+      _msg=(
+        "Invalid argument '${arg}'."
+      )
+      _msg_error \
+        "${_msg[*]}" \
+        0
+      _usage \
+        1 ;;
+  esac
+done
+shift \
+  $((
+    OPTIND - 1 \
+  ))
+if (( "${#}" < 1 )); then
+  _msg=(
+    "[${app_name}] ERROR: No input"
+    "configuration file given."
+  )
+  _msg_error \
+    "${_msg[*]}" \
+    0
+  _usage \
+    1
+fi
+
+app_opts=(
+  "${config_file}"
+)
+
+_libevm_config_convert \
+  "${app_opts[@]}"

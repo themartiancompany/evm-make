@@ -27,26 +27,46 @@ LIB_DIR=$(DESTDIR)$(PREFIX)/lib/$(_PROJECT)
 MAN_DIR?=$(DESTDIR)$(PREFIX)/share/man
 
 DOC_FILES=\
-  $(wildcard *.rst) \
-  $(wildcard *.md)
-SCRIPT_FILES=$(wildcard $(_PROJECT)/*)
+  $(wildcard \
+      *.rst) \
+  $(wildcard \
+      *.md)
+SCRIPT_FILES=\
+  $(wildcard \
+      $(_PROJECT)/*)
 
 all:
 
 check: shellcheck
 
 shellcheck:
-	shellcheck -s bash $(SCRIPT_FILES)
+
+	shellcheck \
+	  -s \
+	    "bash" \
+	    $(SCRIPT_FILES)
 
 install: install-scripts install-doc install-man
 
 install-scripts:
 
-	install -vDm 755 "$(_PROJECT)/$(_PROJECT)" "$(BIN_DIR)/$(_PROJECT)"
+	install \
+	  -vDm755 \
+	  "$(_PROJECT)/$(_PROJECT)" \
+	  "$(BIN_DIR)/$(_PROJECT)"
+	install \
+	  -vDm755 \
+	  "$(_PROJECT)/libevm-config-convert" \
+	  "$(BIN_DIR)/libevm-config-convert"
+	
 
 install-doc:
 
-	install -vDm 644 $(DOC_FILES) -t $(DOC_DIR)
+	install \
+	  -vDm644 \
+	  $(DOC_FILES) \
+	  -t \
+	  $(DOC_DIR)
 
 install-man:
 
@@ -56,5 +76,8 @@ install-man:
 	rst2man \
 	  "man/$(_PROJECT).1.rst" \
 	  "$(MAN_DIR)/man1/$(_PROJECT).1"
+	rst2man \
+	  "man/libevm-config-convert.1.rst" \
+	  "$(MAN_DIR)/man1/libevm-config-convert.1"
 
 .PHONY: check install install-doc install-man install-scripts shellcheck
