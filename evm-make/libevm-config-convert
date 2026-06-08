@@ -37,7 +37,6 @@ source \
   "${_lib}/libcrash-bash/crash-bash"
 
 _global_variables() {
-  app_name="config-convert"
   config_file=""
   output_file=""
 }
@@ -143,7 +142,7 @@ shift \
   ))
 if (( "${#}" < 1 )); then
   _msg=(
-    "[${app_name}] ERROR: No input"
+    "No input"
     "configuration file given."
   )
   _msg_error \
