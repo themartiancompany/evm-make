@@ -39,6 +39,7 @@ source \
 _global_variables() {
   config_file=""
   output_file=""
+  color=""
   quiet=""
 }
 
