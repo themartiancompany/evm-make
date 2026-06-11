@@ -41,6 +41,7 @@ _global_variables() {
   make_date=""
   target_command=""
   project_dir=""
+  contracts_dir=""
   work_dir=""
   compiler_backend=""
   lib_dir=""
@@ -443,15 +444,30 @@ _contracts_get() {
   local \
     _contracts_dir="${1}" \
     _contract \
-    _contracts_dirs=()
+    _contract_name \
+    _contracts_dirs=() \
+    _msg=()
   _contracts_dirs+=(
     "${_contracts_dir}/"*
   )
-  for _contract in "${_contracts_dirs[@]}"; do
-    _contracts+=(
-      "$(basename \
-           "${_contract}")"
-    )
+  for _contract_dir in "${_contracts_dirs[@]}"; do
+    if [[ -d "${_contract_dir}" ]]; then
+      _contract_name="$(
+        basename \
+          "${_contract_dir}")"
+      if [[ -e "${_contract_dir}/"*"/${_contract_name}.sol" ]]; then
+        _contracts+=(
+          "${_contract_name}"
+        )
+      else
+        _msg=(
+          "Directory '${_contract_dir}'"
+          "is not a contract directory."
+        )
+        _msg_info \
+          "${_msg[*]}"
+      fi
+    fi
   done
 }
 
@@ -459,12 +475,13 @@ _evm_make() {
   local \
     _target_command="${1}" \
     _project_dir="${2}" \
-    _work_dir="${3}" \
-    _compiler_backend="${4}" \
-    _lib_dir="${5}" \
-    _cache_clean="${6}" \
-    _rebuild_skip="${7}" \
-    _target_languages_amount="${8}" \
+    _contracts_dir="${3}" \
+    _work_dir="${4}" \
+    _compiler_backend="${5}" \
+    _lib_dir="${6}" \
+    _cache_clean="${7}" \
+    _rebuild_skip="${8}" \
+    _target_languages_amount="${9}" \
     _target_languages=() \
     _target_actions=() \
     _oldpwd \
@@ -479,7 +496,7 @@ _evm_make() {
     _msg=() \
     _command_args=()
   shift \
-    8
+    9
   for _index \
     in $(seq \
            "$(( "${_target_languages_amount}" -1 ))"); do
@@ -491,7 +508,9 @@ _evm_make() {
   _command_args+=(
     "$@"
   )
-  _contracts_dir="contracts"
+  if [[ "${_contracts_dir}" == "" ]]; then
+    _contracts_dir="contracts"
+  fi
   _oldpwd="${PWD}"
   if [[ "${_target_command}" == "install" ]]; then
     _target_actions+=(
@@ -591,6 +610,19 @@ _project_dir_check() {
   fi
 }
 
+_contracts_dir_auto_detect() {
+  local \
+    _contracts_dir
+  _contracts_dir="contracts"
+  if [[ -d "${project_dir}/${_contracts_dir}" ]]; then
+    _contracts_dir="${_project_dir}"
+  fi
+  _set_override \
+    "contracts" \
+    "dir" \
+    "${_contracts_dir}"
+}
+
 _set_overrides() {
   if [[ -v override_quiet ]]; then
     quiet="${override_quiet}"
@@ -617,7 +649,7 @@ _set_overrides() {
     "project" \
     "dir" \
     "$(realpath \
-         "$(pwd)")"
+         "${PWD}")"
   _project_dir_check
   _set_override \
     "work" \
@@ -626,7 +658,7 @@ _set_overrides() {
   _set_override \
     "lib" \
     "dir" \
-    "$(pwd)/build"
+    "${PWD}/build"
   _set_override \
     "rebuild" \
     "skip" \
@@ -636,6 +668,7 @@ _set_overrides() {
     "backend" \
     "solc"
   _cache_clean_auto_detect
+  _contracts_dir_auto_detect
 }
 
 # Show help usage, with an exit status.
@@ -649,14 +682,17 @@ _usage() {
       -d '' \
       _usage_text << \
         ENDUSAGETEXT || true
+
 EVM toolchain build and install tool.
 
 Usage:
+
   ${app_name}
     [options]
     <command>
 
   commands:
+
     build
     install
     install_sources
@@ -665,23 +701,34 @@ Usage:
     Default: ${target_command}
 
   options:
-     -C <project_dir>       Project directory.
+
+     -C <project-dir>       Project directory.
                             Default: ${project_dir}
-     -b <compiler_backend>  Backend for solidity-compiler;
+
+     -p <contracts-dir>     Contracts directory inside
+                            the project.
+                            Default: ${contracts_dir}
+
+     -b <compiler-backend>  Backend for solidity-compiler;
                             can be 'solc' or 'hardhat'.
                             Default: ${compiler_backend}
-     -w <work_dir>          Work directory.
+
+     -w <work-dir>          Work directory.
                             Default: ${work_dir}
-     -o <lib_dir>           Install directory.
+
+     -o <lib-dir>           Install directory.
                             Default: ${lib_dir}
+
      -l <y/n>               Whether to pass the clean cache
                             option to solidity-compiler.
                             When the backend is 'hardhat'
                             defaults to 'y', while for 'solc' is 'n'.
                             Default: ${cache_clean}
+
      -L <language>          Target languages for the configuration file.
                             It can be 'bash' or 'javascript'.
                             Default: ${target_languages[@]}
+
      -f <y/n>               If 'y', skip rebuilding the contracts
                             if artifacts are found already in the
                             directory.
@@ -703,6 +750,7 @@ _show_config() {
   _msg_info "                Make date:   ${make_date}"
   _msg_info "           Target command:   ${target_command}"
   _msg_info "        Project directory:   ${project_dir}"
+  _msg_info "      Contracts directory:   ${contracts_dir}"
   _msg_info "           Work directory:   ${work_dir}"
   _msg_info "        Install directory:   ${lib_dir}"
   _msg_info "         Compiler backend:   ${compiler_backend}"
@@ -717,12 +765,14 @@ _requirements
 # shellcheck disable=SC2034
 while \
   getopts \
-    'C:w:o:b:l:L:f:cvh?' \
+    'C:p:w:o:b:l:L:f:cvh?' \
     arg; do
   case \
     "${arg}" in
     C)
       override_project_dir="${OPTARG}" ;;
+    p)
+      override_contracts_dir="${OPTARG}" ;;
     w)
       override_work_dir="$(
         realpath \
@@ -779,6 +829,7 @@ _show_config
 app_opts=(
   "${target_command}"
   "${project_dir}"
+  "${contracts_dir}"
   "${work_dir}"
   "${compiler_backend}"
   "${lib_dir}"
