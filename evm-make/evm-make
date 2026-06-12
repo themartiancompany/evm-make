@@ -615,7 +615,7 @@ _contracts_dir_auto_detect() {
     _contracts_dir
   _contracts_dir="contracts"
   if [[ -d "${project_dir}/${_contracts_dir}" ]]; then
-    _contracts_dir="${_project_dir}"
+    _contracts_dir="${project_dir}"
   fi
   _set_override \
     "contracts" \
