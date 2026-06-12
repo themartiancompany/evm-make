@@ -138,7 +138,7 @@ _contract_setup() {
       "${PWD}"
     for _item in "./"*; do
       if [[ -d "${_item}" ]]; then
-        _contract_deployed_networks_config_dirs=(
+        _contract_deployed_networks_config_dirs+=(
           "${_item}"
         )
       else
