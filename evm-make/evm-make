@@ -473,13 +473,13 @@ _contracts_get() {
           #   "${_msg[*]}"
         fi
       done
-      _msg=(
-        "Found contracts '${_contracts[*]}'."
-      )
-      _msg_info \
-        "${_msg[*]}"
     fi
   done
+  _msg=(
+    "Found contracts '${_contracts[*]}'."
+  )
+  _msg_info \
+    "${_msg[*]}"
 }
 
 _evm_make() {
