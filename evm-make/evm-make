@@ -251,8 +251,19 @@ _contract_build() {
             "${_msg[*]}"
         fi
       done
-    fi
-  done
+      _contract_built="true"
+    else
+      _msg=(
+        "No deployments for"
+        "contract '${_target_contract}'."
+      )
+      _msg_info \
+        "${_msg[*]}"
+    fi || \
+    true
+  done || \
+  true
+  true
 }
 
 _contract_install_common() {
@@ -386,22 +397,24 @@ _contract_install_deployments_solc() {
     "${_target_contract}"
   for _network in ${_contract_deployed_networks[@]}; do
     _deployment_dir="${_contract_deployments_dir}/${_network}"
-    _config_file="${_deployment_dir}/config.sh"
-    source \
-      "${_config_file}"
-    for _version in "${!contract_address[@]}"; do
-      _deployment="${_network}/${_version}"
-      _build_dir="${_work_dir}/${_deployment}"
-      _install_dir="${_lib_dir}/deployments/${_target_contract}/${_deployment}"
-      install \
-        "${_install_opts[@]}" \
-        "${_build_dir}/${_abi}" \
-        "${_install_dir}/${_abi}"
-      install \
-        "${_install_opts[@]}" \
-        "${_build_dir}/${_bytecode}" \
-        "${_install_dir}/${_bytecode}"
-    done
+    if [[ -d "${_deployment_dir}" ]]; then
+      _config_file="${_deployment_dir}/config.sh"
+      source \
+        "${_config_file}"
+      for _version in "${!contract_address[@]}"; do
+        _deployment="${_network}/${_version}"
+        _build_dir="${_work_dir}/${_deployment}"
+        _install_dir="${_lib_dir}/deployments/${_target_contract}/${_deployment}"
+        install \
+          "${_install_opts[@]}" \
+          "${_build_dir}/${_abi}" \
+          "${_install_dir}/${_abi}"
+        install \
+          "${_install_opts[@]}" \
+          "${_build_dir}/${_bytecode}" \
+          "${_install_dir}/${_bytecode}"
+      done
+    fi
   done
 }
 
@@ -518,6 +531,7 @@ _evm_make() {
     _contract \
     _contract_deployments_dir \
     _contracts=() \
+    _contract_built \
     _contracts_dir \
     _sol \
     _abi \
@@ -573,7 +587,8 @@ _evm_make() {
         "${_compiler_backend}" \
         "${_work_dir}" \
         "${_cache_clean}" \
-        "${_rebuild_skip}"
+        "${_rebuild_skip}" || \
+      true
     fi
     if [[ " ${_target_actions[*]} " == \
             *" install_sources "* ]]; then
