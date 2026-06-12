@@ -133,9 +133,6 @@ _contract_setup() {
     _oldpwd="${PWD}"
     cd \
       "${_contract_deployments_dir}"
-    ls \
-      -lsh \
-      "${PWD}"
     for _item in "./"*; do
       if [[ -d "${_item}" ]]; then
         _contract_deployed_networks_config_dirs+=(
