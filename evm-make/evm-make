@@ -107,20 +107,20 @@ _contract_setup() {
   _abi="${_target_contract}.abi.json"
   _bytecode="${_target_contract}.bin"
   _json="${_target_contract}.json"
-  _contract_dir="${_contracts_dir}/${_target_contract}"
+  _contract_dir="${_project_dir}/${_contracts_dir}/${_target_contract}"
   _contract_deployments_dir="${_contract_dir}/deployments"
-  _msg_info \
-    "Contract dir: ${_contract_dir}"
-  _contract_dirs=(
-    "${_contract_dir}/"*
-  )
-  _msg_info \
-    "Found contract directories: '${_contract_dirs}'."
-  _versions_get \
-    "${_contract_dirs[@]}"
-  _msg_info \
-    "Found versions: ${_contract_versions[*]}"
   if [[ -d "${_contract_deployments_dir}" ]]; then
+    _msg_info \
+      "Contract dir: ${_contract_dir}"
+    _contract_dirs=(
+      "${_contract_dir}/"*
+    )
+    _msg_info \
+      "Found contract directories: '${_contract_dirs}'."
+    _versions_get \
+      "${_contract_dirs[@]}"
+    _msg_info \
+      "Found versions: ${_contract_versions[*]}"
     for _item in "${_contract_deployments_dir}/"*; do
       if [[ -d "${_item}" ]]; then
         _contract_deployed_networks_config_dirs=(
@@ -128,7 +128,6 @@ _contract_setup() {
         )
       fi
     done
-  fi
   for _network \
     in "${_contract_deployed_networks_config_dirs[@]}"; do
     _contract_deployed_networks+=(
