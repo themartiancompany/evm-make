@@ -102,7 +102,8 @@ _contract_setup() {
     _contracts_dir="${1}" \
     _target_contract="${2}" \
     _network \
-    _item
+    _item \
+    _oldpwd
   _sol="${_target_contract}.sol"
   _abi="${_target_contract}.abi.json"
   _bytecode="${_target_contract}.bin"
@@ -129,7 +130,13 @@ _contract_setup() {
       "${_contract_dirs[@]}"
     _msg_info \
       "Found versions: ${_contract_versions[*]}"
-    for _item in "${_contract_deployments_dir}/"*; do
+    _oldpwd="${PWD}"
+    cd \
+      "${_contract_deployments_dir}"
+    ls \
+      -lsh \
+      "${PWD}"
+    for _item in "./"*; do
       if [[ -d "${_item}" ]]; then
         _contract_deployed_networks_config_dirs=(
           "${_item}"
@@ -144,6 +151,8 @@ _contract_setup() {
       fi
     done
   fi
+  cd \
+    "${_oldpwd}"
   for _network \
     in "${_contract_deployed_networks_config_dirs[@]}"; do
     _contract_deployed_networks+=(
