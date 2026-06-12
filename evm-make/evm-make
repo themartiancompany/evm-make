@@ -134,7 +134,14 @@ _contract_setup() {
         _contract_deployed_networks_config_dirs=(
           "${_item}"
         )
-      fi;
+      else
+        _msg=(
+          "File at path '${_item}'"
+          "is not a directory."
+        )
+        _msg_info \
+          "${_msg[*]}"
+      fi
     done
   fi
   for _network \
