@@ -175,81 +175,83 @@ _contract_build() {
     "${_target_contract}"
   for _network in "${_contract_deployed_networks[@]}"; do
     _deployment_dir="${_contract_deployments_dir}/${_network}"
-    _config_file="${_deployment_dir}/config.sh"
-    source \
-      "${_config_file}"
-    for _version in "${!contract_address[@]}"; do
-      _deployment="${_network}/${_version}"
-      _build_dir="${_work_dir}/${_deployment}"
-      _compiler_work_dir="${_build_dir}/build"
-      _compiler_opts=()
-      if [[ "${quiet}" == "n" ]]; then
+    if [[ -d "${_deployment_dir}" ]]; then
+      _config_file="${_deployment_dir}/config.sh"
+      source \
+        "${_config_file}"
+      for _version in "${!contract_address[@]}"; do
+        _deployment="${_network}/${_version}"
+        _build_dir="${_work_dir}/${_deployment}"
+        _compiler_work_dir="${_build_dir}/build"
+        _compiler_opts=()
+        if [[ "${quiet}" == "n" ]]; then
+          _compiler_opts+=(
+            -v
+          )
+        fi
+        if [[ "${_cache_clean}" == "y" ]]; then
+          _compiler_opts+=(
+            -l
+          )
+        fi
         _compiler_opts+=(
-          -v
+          -b
+            "${_compiler_backend}"
+          -C
+            "${solc_version["${_version}"]}"
+          -e
+            "${evm_version["${_version}"]}"
+          -w
+            "${_compiler_work_dir}"
+          -o
+            "${_build_dir}"
         )
-      fi
-      if [[ "${_cache_clean}" == "y" ]]; then
-        _compiler_opts+=(
-          -l
-        )
-      fi
-      _compiler_opts+=(
-        -b
-          "${_compiler_backend}"
-        -C
-          "${solc_version["${_version}"]}"
-        -e
-          "${evm_version["${_version}"]}"
-        -w
+        mkdir \
+          -p \
           "${_compiler_work_dir}"
-        -o
-          "${_build_dir}"
-      )
-      mkdir \
-        -p \
-        "${_compiler_work_dir}"
-      _build="true"
-      if [[ "${_rebuild_skip}" == "y" ]]; then
-        if [[ "${_compiler_backend}" == "solc" ]]; then
-          if [[ -e "${_build_dir}/${_abi}" ]] && \
-             [[ -e "${_build_dir}/${_bytecode}" ]]; then \
-           _build="false"
+        _build="true"
+        if [[ "${_rebuild_skip}" == "y" ]]; then
+          if [[ "${_compiler_backend}" == "solc" ]]; then
+            if [[ -e "${_build_dir}/${_abi}" ]] && \
+               [[ -e "${_build_dir}/${_bytecode}" ]]; then \
+             _build="false"
+            fi
+          elif [[ "${_compiler_backend}" == "hardhat" ]]; then
+            _path_build_json="${_build_dir}/contracts/${_sol}/${_json}"
+            _msg=(
+              "Looking for '${_path_build_json}'"
+            )
+            _msg_info \
+              "${_msg[*]}"
+            if [[ -e "${_path_build_json}" ]]; then
+              _build="false"
+            fi
           fi
-        elif [[ "${_compiler_backend}" == "hardhat" ]]; then
-          _path_build_json="${_build_dir}/contracts/${_sol}/${_json}"
+        fi
+        if [[ "${_build}" == "true" ]]; then
+          _path_project_sol="$(
+            realpath \
+              "${_contract_dir}/${_version}/${_sol}")"
           _msg=(
-            "Looking for '${_path_build_json}'"
+            "Building '${_path_project_sol}'."
+            "Running 'solidity-compiler' with"
+            "options '${_compiler_opts[*]}'."
           )
           _msg_info \
             "${_msg[*]}"
-          if [[ -e "${_path_build_json}" ]]; then
-            _build="false"
-          fi
+          echo "mammt"
+          solidity-compiler \
+            "${_compiler_opts[@]}" \
+            "${_path_project_sol}"
+        elif [[ "${_build}" == "false" ]]; then
+          _msg=(
+            "Skipping build of '${_path_project_sol}'."
+          )
+          _msg_info \
+            "${_msg[*]}"
         fi
-      fi
-      if [[ "${_build}" == "true" ]]; then
-        _path_project_sol="$(
-          realpath \
-            "${_contract_dir}/${_version}/${_sol}")"
-        _msg=(
-          "Building '${_path_project_sol}'."
-          "Running 'solidity-compiler' with"
-          "options '${_compiler_opts[*]}'."
-        )
-        _msg_info \
-          "${_msg[*]}"
-        echo "mammt"
-        solidity-compiler \
-          "${_compiler_opts[@]}" \
-          "${_path_project_sol}"
-      elif [[ "${_build}" == "false" ]]; then
-        _msg=(
-          "Skipping build of '${_path_project_sol}'."
-        )
-        _msg_info \
-          "${_msg[*]}"
-      fi
-    done
+      done
+    fi
   done
 }
 
