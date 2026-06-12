@@ -243,11 +243,19 @@ _contract_build() {
           elif [[ "${_compiler_backend}" == "hardhat" ]]; then
             _path_build_json="${_build_dir}/contracts/${_sol}/${_json}"
             _msg=(
-              "Looking for '${_path_build_json}'"
+              "Looking for '${_path_build_json}'."
             )
             _msg_info \
               "${_msg[*]}"
             if [[ -e "${_path_build_json}" ]]; then
+              _msg=(
+                "Hardhat deployments artifacts"
+                "for contract '${_target_contract}'"
+                "on network '${_network}' already"
+                "built."
+              )
+              _msg_info \
+                "${_msg[*]}"
               _build="false"
             fi
           fi
