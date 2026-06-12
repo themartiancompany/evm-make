@@ -167,9 +167,13 @@ _contract_build() {
     _path_project_json \
     _path_project_sol \
     _network \
-    _version
+    _version \
+    _msg=()
+  _msg=(
+    "Building contract '${_target_contract}'."
+  )
   _msg_info \
-    "Building contract '${_target_contract}'"
+    "${_msg[*]}"
   _contract_setup \
     "${_contracts_dir}" \
     "${_target_contract}"
@@ -414,6 +418,13 @@ _contract_install_deployments_solc() {
           "${_build_dir}/${_bytecode}" \
           "${_install_dir}/${_bytecode}"
       done
+    else
+      _msg=(
+        "No deployments for contract"
+        "'${_target_contract}'."
+      )
+      _msg_info \
+        "${_msg[*]}"
     fi
   done
 }
@@ -452,8 +463,12 @@ _contract_install_deployments_hardhat() {
   _contract_setup \
     "${_contracts_dir}" \
     "${_target_contract}"
+  _msg=(
+    "Deployments found for networks"
+    "'${_contract_deployed_networks[@]}'."
+  )
   _msg_info \
-    "${_contract_deployed_networks[@]}"
+    "${_msg[*]}"
   for _network in ${_contract_deployed_networks[@]}; do
     _deployment_dir="${_contract_deployments_dir}/${_network}"
     if [[ -d "${_deployment_dir}" ]]; then
