@@ -456,19 +456,21 @@ _contract_install_deployments_hardhat() {
     "${_contract_deployed_networks[@]}"
   for _network in ${_contract_deployed_networks[@]}; do
     _deployment_dir="${_contract_deployments_dir}/${_network}"
-    _config_file="${_deployment_dir}/config.sh";
-    source \
-      "${_config_file}"
-    for _version in "${!contract_address[@]}"; do
-      _deployment="${_network}/${_version}"
-      _build_dir="${_work_dir}/${_deployment}"
-      _install_dir="${_lib_dir}/deployments/${_target_contract}/${_deployment}"
-      _path_build_json="${_build_dir}/contracts/${_sol}/${_json}"
-      install \
-        "${_install_opts[@]}" \
-        "${_path_build_json}" \
-        "${_install_dir}/${_json}"
-    done
+    if [[ -d "${_deployment_dir}" ]]; then
+      _config_file="${_deployment_dir}/config.sh";
+      source \
+        "${_config_file}"
+      for _version in "${!contract_address[@]}"; do
+        _deployment="${_network}/${_version}"
+        _build_dir="${_work_dir}/${_deployment}"
+        _install_dir="${_lib_dir}/deployments/${_target_contract}/${_deployment}"
+        _path_build_json="${_build_dir}/contracts/${_sol}/${_json}"
+        install \
+          "${_install_opts[@]}" \
+          "${_path_build_json}" \
+          "${_install_dir}/${_json}"
+      done
+    fi
   done
 }
 
@@ -610,7 +612,8 @@ _evm_make() {
         "${_contracts_dir}" \
         "${_contract}" \
         "${_lib_dir}" \
-        "${_work_dir}"
+        "${_work_dir}" || \
+      true
     fi
   done
   cd \
