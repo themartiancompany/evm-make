@@ -470,6 +470,13 @@ _contract_install_deployments_hardhat() {
           "${_path_build_json}" \
           "${_install_dir}/${_json}"
       done
+    else
+      _msg=(
+        "No deployments for contract"
+        "'${_target_contract}'."
+      )
+      _msg_info \
+        "${_msg[*]}"
     fi
   done
 }
