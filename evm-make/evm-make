@@ -121,7 +121,7 @@ _contract_setup() {
   _msg_info \
     "Found versions: ${_contract_versions[*]}"
   if [[ -d "${_contract_deployments_dir}" ]]; then
-    for _item in "${_contracts_deployments_dir}/"*; do
+    for _item in "${_contract_deployments_dir}/"*; do
       if [[ -d "${_item}" ]]; then
         _contract_deployed_networks_config_dirs=(
           "${_item}"
