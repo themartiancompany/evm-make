@@ -110,8 +110,16 @@ _contract_setup() {
   _contract_dir="${_project_dir}/${_contracts_dir}/${_target_contract}"
   _contract_deployments_dir="${_contract_dir}/deployments"
   if [[ -d "${_contract_deployments_dir}" ]]; then
+    _msg=(
+      "Contract dir: '${_contract_dir}'."
+    )
     _msg_info \
-      "Contract dir: ${_contract_dir}"
+      "${_msg[*]}"
+    _msg=(
+      "Deployments dir: '${_contract_deployments_dir}'."
+    )
+    _msg_info \
+      "${_msg[*]}"
     _contract_dirs=(
       "${_contract_dir}/"*
     )
@@ -128,6 +136,7 @@ _contract_setup() {
         )
       fi
     done
+  fi
   for _network \
     in "${_contract_deployed_networks_config_dirs[@]}"; do
     _contract_deployed_networks+=(
@@ -323,17 +332,19 @@ _contract_install_deployments_config() {
     "${_target_contract}"
   for _network in ${_contract_deployed_networks[@]}; do
     _deployment_dir="${_contract_deployments_dir}/${_network}"
-    _config_file="${_deployment_dir}/config.sh"
-    _install_dir="${_lib_dir}/deployments/${_target_contract}/${_network}"
-    install \
-      -Dm644 \
-      "${_config_file}" \
-      "${_install_dir}/config.sh"
-    if [[ " ${target_languages[*]} " == *" javascript "* ]]; then
-      libevm-config-convert \
-        "${_libevm_config_convert_opts[@]}" \
+    if [[ -d "${_deployment_dir}" ]]; then
+      _config_file="${_deployment_dir}/config.sh"
+      _install_dir="${_lib_dir}/deployments/${_target_contract}/${_network}"
+      install \
+        -Dm644 \
         "${_config_file}" \
-        "${_install_dir}/config.json"
+        "${_install_dir}/config.sh"
+      if [[ " ${target_languages[*]} " == *" javascript "* ]]; then
+        libevm-config-convert \
+          "${_libevm_config_convert_opts[@]}" \
+          "${_config_file}" \
+          "${_install_dir}/config.json"
+      fi
     fi
   done
 }
