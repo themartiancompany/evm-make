@@ -114,14 +114,16 @@ _contract_setup() {
     "${_contract_dir}/"*
   )
   _msg_info \
-    "Found contract directories: ${_contract_dirs}"
+    "Found contract directories: '${_contract_dirs}'."
   _versions_get \
     "${_contract_dirs[@]}"
   _msg_info \
     "Found versions: ${_contract_versions[*]}"
-  _contract_deployed_networks_config_dirs=(
-    "${_contract_deployments_dir}/"*
-  )
+  if [[ -d "${_contract_deployments_dir}" ]]; then
+    _contract_deployed_networks_config_dirs=(
+      "${_contract_deployments_dir}/"*
+    )
+  fi
   for _network \
     in "${_contract_deployed_networks_config_dirs[@]}"; do
     _contract_deployed_networks+=(
