@@ -124,7 +124,7 @@ _contract_setup() {
       "${_contract_dir}/"*
     )
     _msg_info \
-      "Found contract directories: '${_contract_dirs}'."
+      "Found contract directories: '${_contract_dirs[*]}'."
     _versions_get \
       "${_contract_dirs[@]}"
     _msg_info \
@@ -134,7 +134,7 @@ _contract_setup() {
         _contract_deployed_networks_config_dirs=(
           "${_item}"
         )
-      fi
+      fi;
     done
   fi
   for _network \
