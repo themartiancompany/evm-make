@@ -455,18 +455,29 @@ _contracts_get() {
       _contract_name="$(
         basename \
           "${_contract_dir}")"
-      if [[ -e "${_contract_dir}/"*"/${_contract_name}.sol" ]]; then
-        _contracts+=(
-          "${_contract_name}"
-        )
-      else
-        _msg=(
-          "Directory '${_contract_dir}'"
-          "is not a contract directory."
-        )
-        _msg_info \
-          "${_msg[*]}"
-      fi
+      for _path in "${_contract_dir}/"*"/${_contract_name}.sol"; do
+        if [[ -e "${_path}" ]]; then
+          _contracts+=(
+            "${_contract_name}"
+          )
+          break
+        else
+          true
+          # _msg=(
+          #   "Directory '${_contract_dir}'"
+          #   "is not a contract directory"
+          #   "because '${_path}'"
+          #   "does not exist."
+          # )
+          # _msg_info \
+          #   "${_msg[*]}"
+        fi
+      done
+      _msg=(
+        "Found contracts '${_contracts[*]}'."
+      )
+      _msg_info \
+        "${_msg[*]}"
     fi
   done
 }
