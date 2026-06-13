@@ -110,6 +110,7 @@ _contract_setup() {
   _json="${_target_contract}.json"
   _contract_dir="${_project_dir}/${_contracts_dir}/${_target_contract}"
   _contract_deployments_dir="${_contract_dir}/deployments"
+  _oldpwd="${PWD}"
   if [[ -d "${_contract_deployments_dir}" ]]; then
     _msg=(
       "Contract dir: '${_contract_dir}'."
@@ -130,7 +131,6 @@ _contract_setup() {
       "${_contract_dirs[@]}"
     _msg_info \
       "Found versions: ${_contract_versions[*]}"
-    _oldpwd="${PWD}"
     cd \
       "${_contract_deployments_dir}"
     for _item in "./"*; do
