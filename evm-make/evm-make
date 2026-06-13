@@ -285,7 +285,7 @@ _contract_build() {
             "${_path_project_sol}"
         elif [[ "${_build}" == "false" ]]; then
           _msg=(
-            "Skipping build of '${_path_project_sol}'."
+            "Skipping build of '${_target_contract}'."
           )
           _msg_info \
             "${_msg[*]}"
