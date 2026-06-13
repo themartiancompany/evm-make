@@ -260,7 +260,7 @@ _contract_build() {
             else
               _msg=(
                 "Found no deployments artifacts for"
-                "contract '${_target_Contract}'"
+                "contract '${_target_contract}'"
                 "on network '${_network}'."
               )
               _msg_info \
