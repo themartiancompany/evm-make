@@ -21,10 +21,27 @@
 
 PREFIX ?= /usr/local
 _PROJECT=evm-make
+_PROJECT_NPM=evm-make.js
 DOC_DIR=$(DESTDIR)$(PREFIX)/share/doc/$(_PROJECT)
 BIN_DIR=$(DESTDIR)$(PREFIX)/bin
 LIB_DIR=$(DESTDIR)$(PREFIX)/lib/$(_PROJECT)
 MAN_DIR?=$(DESTDIR)$(PREFIX)/share/man
+
+_INSTALL_FILE=\
+  install \
+    -vDm644
+_INSTALL_DIR=\
+  install \
+    -vdm755
+_INSTALL_EXE=\
+  install \
+    -vDm755
+_MAKE_EXE=\
+  chmod \
+    755
+_MAKE_LINK=\
+  ln \
+    -sv
 
 DOC_FILES=\
   $(wildcard \
@@ -35,7 +52,16 @@ SCRIPT_FILES=\
   $(wildcard \
       $(_PROJECT)/*)
 
-all:
+all: build-scripts
+
+build-scripts:
+
+	git \
+	  submodule \
+	    update \
+	    --init \
+	      "$(_PROJECT)/nodejs" || \
+	true
 
 check: shellcheck
 
@@ -46,32 +72,27 @@ shellcheck:
 	    "bash" \
 	    $(SCRIPT_FILES)
 
-install: install-scripts install-doc install-man
+install: install-bash-scripts install-doc install-man
 
-install-scripts:
+install-bash-scripts:
 
-	install \
-	  -vDm755 \
-	  "$(_PROJECT)/$(_PROJECT)" \
+	$(_INSTALL_EXE) \
+	  "$(_PROJECT)/bash/$(_PROJECT)" \
 	  "$(BIN_DIR)/$(_PROJECT)"
-	install \
-	  -vDm755 \
-	  "$(_PROJECT)/libevm-config-convert" \
+	$(_INSTALL_EXE) \
+	  "$(_PROJECT)/bash/libevm-config-convert" \
 	  "$(BIN_DIR)/libevm-config-convert"
-	
 
 install-doc:
 
-	install \
-	  -vDm644 \
+	$(_INSTALL_FILE) \
 	  $(DOC_FILES) \
 	  -t \
 	  $(DOC_DIR)
 
 install-man:
 
-	install \
-	  -vdm755 \
+	$(_INSTALL_DIR) \
 	  "$(MAN_DIR)/man1"
 	rst2man \
 	  "man/$(_PROJECT).1.rst" \
@@ -80,4 +101,4 @@ install-man:
 	  "man/libevm-config-convert.1.rst" \
 	  "$(MAN_DIR)/man1/libevm-config-convert.1"
 
-.PHONY: check install install-doc install-man install-scripts shellcheck
+.PHONY: build-scripts check install install-doc install-man install-bash-scripts shellcheck

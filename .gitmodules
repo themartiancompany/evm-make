@@ -1,3 +1,6 @@
 [submodule "man"]
 	path = man
 	url = github:themartiancompany/evm-make-man
+[submodule "evm-make/nodejs"]
+	path = evm-make/nodejs
+	url = https://github.com/themartiancompany/evm-make.js
