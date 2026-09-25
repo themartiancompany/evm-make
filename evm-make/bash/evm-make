@@ -356,6 +356,133 @@ _contract_install_sources() {
   done
 }
 
+_contract_uninstall_clean() {
+  local \
+    _target_uninstall_contents
+  _target_uninstall_contents="$(
+    ls \
+      "${_target_uninstall}" || \
+    true)"
+  if [[ "${_target_uninstall_contents}" == "" ]]; then
+    rmdir \
+      -v \
+      "${_target_uninstall}"
+  fi
+}
+
+_contract_uninstall_deployments_config() {
+  local \
+    _contracts_dir="${1}" \
+    _target_contract="${2}" \
+    _lib_dir="${3}" \
+    _contract_dirs=() \
+    _contract_versions=() \
+    _contract_deployed_networks=() \
+    _libevm_config_convert_opts=() \
+    _msg=() \
+    _install_dir \
+    _network
+  if [[ "${quiet}" == "n" ]]; then
+    _libevm_config_convert_opts+=(
+      -v
+    )
+  fi
+  _msg=(
+    "Installing deployments configurations"
+    "for '${_target_contract}'"
+  )
+  _msg_info \
+    "${_msg[*]}"
+  _contract_install_common
+  _contract_setup \
+    "${_contracts_dir}" \
+    "${_target_contract}"
+  for _network in ${_contract_deployed_networks[@]}; do
+    _deployment_dir="${_contract_deployments_dir}/${_network}"
+    if [[ -d "${_deployment_dir}" ]]; then
+      _config_file="${_deployment_dir}/config.sh"
+      _install_dir="${_lib_dir}/deployments/${_target_contract}/${_network}"
+      install \
+        -Dm644 \
+        "${_config_file}" \
+        "${_install_dir}/config.sh"
+      if [[ " ${target_languages[*]} " == *" javascript "* ]]; then
+        libevm-config-convert \
+          "${_libevm_config_convert_opts[@]}" \
+          "${_config_file}" \
+          "${_install_dir}/config.json"
+      fi
+    fi
+  done
+}
+
+_contract_uninstall_sources() {
+  local \
+    _contracts_dir="${1}" \
+    _target_contract="${2}" \
+    _lib_dir="${3}" \
+    _contract_dirs=() \
+    _contract_versions=() \
+    _contract_deployed_networks=() \
+    _install_dir \
+    _install_opts=() \
+    _target_uninstall \
+    _version \
+    _msg=()
+  if [[ "${quiet}" == "n" ]]; then
+    _install_opts+=(
+      -v
+    )
+  fi
+  _install_opts+=(
+    -Dm644
+  )
+  _contract_install_common
+  _contract_setup \
+    "${_contracts_dir}" \
+    "${_target_contract}"
+  _msg=(
+    "Installing sources"
+    "for '${_target_contract}'."
+  )
+  _msg_info \
+    "${_msg[*]}"
+  for _version in "${_contract_versions[@]}"; do \
+    _install_dir="${_lib_dir}/contracts"
+    _target_uninstall="${_install_dir}/${_target_contract}"
+    if [[ ! -d "${_target_uninstall}/${_version}" ]]; then
+      _msg=(
+        "Solidity sources for"
+        "contract '${_target_contract}'"
+        "version '${_version}' not found at"
+        "'${_target_uninstall}'."
+      )
+      _msg_warning \
+        "${_msg[*]}"
+    else
+      rm \
+        -vrf \
+        "${_target_uninstall}/${_version}"
+    fi
+  done
+  _contract_uninstall_clean
+  if [[ ! -d "${_target_uninstall}/${_version}" ]]; then
+    _msg=(
+      "Solidity sources for"
+      "contract '${_target_contract}'"
+      "version '${_version}' not found at"
+      "'${_target_uninstall}'."
+    )
+    _msg_warning \
+      "${_msg[*]}"
+  else
+    rm \
+      -vrf \
+      "${_target_uninstall}/${_version}"
+  fi
+    "${_target_uninstall}/${_version}/${_sol}"
+}
+
 _contract_install_deployments_config() {
   local \
     _contracts_dir="${1}" \
@@ -926,6 +1053,7 @@ Usage:
      -h                     This message.
      -c                     Enable color output
      -v                     Enable verbose output
+
 ENDUSAGETEXT
   _printf \
     '%s\n' \
