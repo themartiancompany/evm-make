@@ -367,8 +367,102 @@ _contract_uninstall_clean() {
     rmdir \
       -v \
       "${_target_uninstall}"
+  else
+    _msg=(
+      "Directory"
+      "'${_target_uninstall}'"
+      "not empty."
+    )
+    _msg_warning \
+      "${_msg[*]}"
   fi
 }
+
+_contract_deployments_dir_clean() {
+  local \
+    _contract_deployments_dir_contents
+  _contract_deployments_dir_contents="$(
+    ls \
+      "${_contract_deployments_dir}")"
+  if [[ "${_contract_deployments_dir_contents}" == "" ]]; then
+    rmdir \
+      -v \
+      "${_contract_deployments_dir}"
+  else
+    _msg=(
+      "Directory"
+      "'${_contract_deployments_dir}'"
+      "not empty."
+    )
+    _msg_warning \
+      "${_msg[*]}"
+  fi
+}
+
+_contract_uninstall_deployments_solc() {
+  local \
+    _contracts_dir="${1}" \
+    _target_contract="${2}" \
+    _lib_dir="${3}" \
+    _work_dir="${4}" \
+    _contract_dirs=() \
+    _contract_versions=() \
+    _contract_deployed_networks=() \
+    _config_file \
+    _build_dir \
+    _deployment \
+    _install_dir \
+    _network \
+    _install_opts=()
+  if [[ "${quiet}" == "n" ]]; then
+    _install_opts+=(
+      -v
+    )
+  _install_opts+=(
+    -Dm644
+  )
+  fi
+  _msg=(
+    "Installing solc deployments artifacts"
+    "for '${_target_contract}'."
+  )
+  _msg_info \
+    "${_msg[*]}"
+  _contract_install_common
+  _contract_setup \
+    "${_contracts_dir}" \
+    "${_target_contract}"
+  for _network in ${_contract_deployed_networks[@]}; do
+    _deployment_dir="${_contract_deployments_dir}/${_network}"
+    if [[ -d "${_deployment_dir}" ]]; then
+      _config_file="${_deployment_dir}/config.sh"
+      source \
+        "${_config_file}"
+      for _version in "${!contract_address[@]}"; do
+        _deployment="${_network}/${_version}"
+        _build_dir="${_work_dir}/${_deployment}"
+        _install_dir="${_lib_dir}/deployments/${_target_contract}/${_deployment}"
+        install \
+          "${_install_opts[@]}" \
+          "${_build_dir}/${_abi}" \
+          "${_install_dir}/${_abi}"
+        install \
+          "${_install_opts[@]}" \
+          "${_build_dir}/${_bytecode}" \
+          "${_install_dir}/${_bytecode}"
+      done
+    else
+      _msg=(
+        "No deployments for contract"
+        "'${_target_contract}'."
+      )
+      _msg_info \
+        "${_msg[*]}"
+    fi
+  done
+}
+
+
 
 _contract_uninstall_deployments_config() {
   local \
@@ -380,6 +474,7 @@ _contract_uninstall_deployments_config() {
     _contract_deployed_networks=() \
     _libevm_config_convert_opts=() \
     _msg=() \
+    _target_uninstall \
     _install_dir \
     _network
   if [[ "${quiet}" == "n" ]]; then
@@ -388,7 +483,7 @@ _contract_uninstall_deployments_config() {
     )
   fi
   _msg=(
-    "Installing deployments configurations"
+    "Uninstalling deployments configurations"
     "for '${_target_contract}'"
   )
   _msg_info \
@@ -402,18 +497,40 @@ _contract_uninstall_deployments_config() {
     if [[ -d "${_deployment_dir}" ]]; then
       _config_file="${_deployment_dir}/config.sh"
       _install_dir="${_lib_dir}/deployments/${_target_contract}/${_network}"
-      install \
-        -Dm644 \
-        "${_config_file}" \
-        "${_install_dir}/config.sh"
-      if [[ " ${target_languages[*]} " == *" javascript "* ]]; then
-        libevm-config-convert \
-          "${_libevm_config_convert_opts[@]}" \
-          "${_config_file}" \
-          "${_install_dir}/config.json"
-      fi
+      _target_uninstall="${_install_dir}/config.sh"
+      _target_uninstall_json="${_install_dir}/config.json"
+      for _target \
+        in "${_target_uninstall}" \
+           "${_target_uninstall_json}"; do
+        if [[ ! -e "${_install_dir}/config.sh" ]]; then
+          _msg=(
+            "Contract deployment configuration for"
+            "contract '${_target_contract}'"
+            "on network '${_network}' not found at"
+            "'${_target_uninstall}'."
+          )
+          _msg_warning \
+            "${_msg[*]}"
+        else
+          rm \
+            -vrf \
+            "${_target_uninstall}"
+          _contract_uninstall_
+        fi
+      done
+    else
+      _msg=(
+       "Found no deployment directory"
+       "for contract '${_target_contract}'"
+       "for network '${_network}'"
+       "at target location"
+       "'${_contract_deployments_dir}'."
+     )
+     _msg_warning \
+       "${_msg[*]}"
     fi
   done
+  _contract_deployments_dir_clean
 }
 
 _contract_uninstall_sources() {
@@ -442,7 +559,7 @@ _contract_uninstall_sources() {
     "${_contracts_dir}" \
     "${_target_contract}"
   _msg=(
-    "Installing sources"
+    "Uninstalling sources"
     "for '${_target_contract}'."
   )
   _msg_info \
