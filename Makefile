@@ -101,4 +101,22 @@ install-man:
 	  "man/libevm-config-convert.1.rst" \
 	  "$(MAN_DIR)/man1/libevm-config-convert.1"
 
-.PHONY: build-scripts check install install-doc install-man install-bash-scripts shellcheck
+uninstall: uninstall-man uninstall-bash-scripts
+
+uninstall-man:
+
+	rm \
+	  -vrf \
+	  "$(MAN_DIR)/man1/$(_PROJECT).1" \
+	  "$(MAN_DIR)/man1/libevm-config-convert.1"
+
+uninstall-bash-scripts:
+
+	rm \
+	  -vrf \
+	  "$(BIN_DIR)/$(_PROJECT)"
+	rm \
+	  -vrf \
+	  "$(BIN_DIR)/libevm-config-convert"
+
+.PHONY: build-scripts check install install-doc install-man install-bash-scripts shellcheck uninstall-bash-scripts
