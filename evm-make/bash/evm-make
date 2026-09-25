@@ -574,6 +574,49 @@ _contracts_get() {
     "${_msg[*]}"
 }
 
+_target_actions_check() {
+  local \
+    _action \
+    _build \
+    _install \
+    _uninstall \
+    _msg=()
+  _build="false"
+  _install="false"
+  _uninstall="false"
+  for _action in "${_target_actions[@]}"; do
+    if [[ "${_action}" == "build" ]]; then
+      _build="true"
+    elif [[ "${_action}" == "install" ]]; then
+      _install="true"
+    elif [[ "${_action}" == "uninstall" ]]; then
+      _uninstall="true"
+    fi
+  done
+  if [[ "${_install}" == "true" && \
+        "${_uninstall}" == "true" ]]; then
+    _msg=(
+      "Trying to run an 'install'"
+      "and 'uninstall' action"
+      "at the same time."
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      1
+  fi
+  if [[ "${_build}" == "true" && \
+        "${_uninstall}" == "true" ]]; then
+    _msg=(
+      "Trying to run an 'build'"
+      "and 'uninstall' action"
+      "at the same time."
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      1
+  fi
+}
+
 _evm_make() {
   local \
     _target_command="${1}" \
@@ -622,6 +665,12 @@ _evm_make() {
       "install_deployments_config"
       "install_deployments"
     )
+  if [[ "${_target_command}" == "uninstall" ]]; then
+    _target_actions+=(
+      "uninstall_sources"
+      "uninstall_deployments_config"
+      "uninstall_deployments"
+    )
   elif [[ "${_target_command}" == \
             "build" || \
           "${_target_command}" == \
@@ -629,11 +678,18 @@ _evm_make() {
           "${_target_command}" == \
             "install_deployments_config" || \
           "${_target_command}" == \
-            "install_deployments" ]]; then
+            "install_deployments" || \
+          "${_target_command}" == \
+            "uninstall_sources" || \
+          "${_target_command}" == \
+            "uninstall_deployments_config" || \
+          "${_target_command}" == \
+            "uninstall_deployments" ]]; then
     _target_actions+=(
       "${_target_command}"
     )
   fi
+  _target_actions_check
   cd \
     "${_project_dir}"
   _contracts_get \
