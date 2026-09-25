@@ -721,6 +721,13 @@ _evm_make() {
         "${_lib_dir}"
     fi
     if [[ " ${_target_actions[*]} " == \
+            *" uninstall_sources "* ]]; then
+      _contract_uninstall_sources \
+        "${_contracts_dir}" \
+        "${_contract}" \
+        "${_lib_dir}"
+    fi
+    if [[ " ${_target_actions[*]} " == \
             *" install_deployments "* ]]; then
       "_contract_install_deployments_${_compiler_backend}" \
         "${_contracts_dir}" \
@@ -729,6 +736,23 @@ _evm_make() {
         "${_work_dir}" || \
       true
     fi
+    if [[ " ${_target_actions[*]} " == \
+            *" uninstall_deployments_config "* ]]; then
+      _contract_uninstall_deployments_config \
+        "${_contracts_dir}" \
+        "${_contract}" \
+        "${_lib_dir}"
+    fi
+    if [[ " ${_target_actions[*]} " == \
+            *" uninstall_deployments "* ]]; then
+      "_contract_uninstall_deployments_${_compiler_backend}" \
+        "${_contracts_dir}" \
+        "${_contract}" \
+        "${_lib_dir}" \
+        "${_work_dir}" || \
+      true
+    fi
+
   done
   cd \
     "${_oldpwd}"
@@ -860,6 +884,10 @@ Usage:
     install_sources
     install_deployments_config
     install_deployments
+    uninstall
+    uninstall_sources
+    uninstall_deployments_config
+    uninstall_deployments
     Default: ${target_command}
 
   options:
