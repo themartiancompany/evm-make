@@ -382,7 +382,13 @@ _dir_clean() {
   local \
     _dir="${1}" \
     _dir_contents \
-    _msg=()
+    _msg=() \
+    _rmdir_opts=()
+  if [[ "${_quiet}" == "n" ]]; then
+    _rmdir_opts+=(
+      -v
+    )
+  fi
   if [[ ! -d "${_dir}" ]]; then
     _msg=(
       "Directory '${_dir}'"
@@ -397,7 +403,7 @@ _dir_clean() {
       "${__dir}")"
   if [[ "${_dir_contents}" == "" ]]; then
     rmdir \
-      -v \
+      "${_rmdir_opts[@]}" \
       "${_dir}"
   else
     _msg=(
@@ -410,14 +416,93 @@ _dir_clean() {
   fi
 }
 
-_contract_deployments_dir_clean() {
+_contract_uninstall_deployments_hardhat() {
+  local \
+    _contracts_dir="${1}" \
+    _target_contract="${2}" \
+    _lib_dir="${3}" \
+    _work_dir="${4}" \
+    _contract_dirs=() \
+    _contract_versions=() \
+    _contract_deployed_networks=() \
+    _rm_opts=() \
+    _config_file \
+    _build_dir \
+    _path_build_json \
+    _deployment \
+    _install_dir \
+    _network
+  if [[ "${quiet}" == "n" ]]; then
+    _rm_opts+=(
+      -v
+    )
+  fi
+  _rm_opts+=(
+    -rf
+  )
+  _msg=(
+    "Uninstalling hardhat deployments artifacts"
+    "for '${_target_contract}'."
+  )
+  _msg_info \
+    "${_msg[*]}"
+  _contract_install_common
+  _contract_setup \
+    "${_contracts_dir}" \
+    "${_target_contract}"
+  _msg=(
+    "Deployments found for networks"
+    "'${_contract_deployed_networks[@]}'."
+  )
+  _msg_info \
+    "${_msg[*]}"
+  for _network in ${_contract_deployed_networks[@]}; do
+    _deployment_dir="${_contract_deployments_dir}/${_network}"
+    if [[ -d "${_deployment_dir}" ]]; then
+      _config_file="${_deployment_dir}/config.sh";
+      source \
+        "${_config_file}"
+      for _version in "${!contract_address[@]}"; do
+        _deployment="${_network}/${_version}"
+        _build_dir="${_work_dir}/${_deployment}"
+        _install_dir="${_lib_dir}/deployments/${_target_contract}/${_deployment}"
+        _path_build_json="${_build_dir}/contracts/${_sol}/${_json}"
+        if [[ ! -e "${_install_dir}/${_json}"  ]]; then
+          _msg=(
+            "Contract compiler output Hardhat JSON for"
+            "contract '${_target_contract}'"
+            "on network '${_network}' not found at"
+            "'${_install_dir}/${_json}'."
+          )
+          _msg_warning \
+            "${_msg[*]}"
+        else
+          rm \
+            "${_rm_opts[@]}" \
+            "${_install_dir}/${_json}"
+        fi
+        _dir_clean \
+          "${_install_dir}"
+      done
+      _dir_clean \
+        "${_lib_dir}/deployments/${_target_contract}/${_network}"
+    else
+      _msg=(
+        "No deployments for contract"
+        "'${_target_contract}'."
+      )
+      _msg_info \
+        "${_msg[*]}"
+    fi
+    _dir_clean \
+      "${_lib_dir}/deployments/${_target_contract}"
+  done
   _dir_clean \
-    "${_contract_deployments_dir}"
+    "${_lib_dir}/deployments"
+  _dir_clean \
+    "${_lib_dir}"
 }
 
-_contract_version_deployment_dir_clean() {
-  _contract_deployment_dir_clean
-}
 
 _contract_uninstall_deployments_solc() {
   local \
@@ -433,7 +518,15 @@ _contract_uninstall_deployments_solc() {
     _deployment \
     _install_dir \
     _network \
-    _install_opts=()
+    _rm_opts=()
+  if [[ "${quiet}" == "n" ]]; then
+    _rm_opts+=(
+      -v
+    )
+  fi
+  _rm_opts+=(
+    -rf
+  )
   _msg=(
     "Installing solc deployments artifacts"
     "for '${_target_contract}'."
@@ -451,7 +544,6 @@ _contract_uninstall_deployments_solc() {
       source \
         "${_config_file}"
       for _version in "${!contract_address[@]}"; do
-        # bookmark
         _deployment="${_network}/${_version}"
         _build_dir="${_work_dir}/${_deployment}"
         _install_dir="${_lib_dir}/deployments/${_target_contract}/${_deployment}"
@@ -466,7 +558,7 @@ _contract_uninstall_deployments_solc() {
             "${_msg[*]}"
         else
           rm \
-            -vrf \
+            "${_rm_opts[@]}" \
             "${_install_dir}/${_abi}"
         fi
         if [[ ! -e "${_install_dir}/${_bytecode}" ]]; then
@@ -480,12 +572,14 @@ _contract_uninstall_deployments_solc() {
             "${_msg[*]}"
         else
           rm \
-            -vrf \
+            "${_rm_opts[@]}" \
             "${_install_dir}/${_bytecode}"
         fi
         _dir_clean \
           "${_install_dir}"
       done
+      _dir_clean \
+        "${_lib_dir}/deployments/${_target_contract}/${_network}"
     else
       _msg=(
         "No deployments for contract"
@@ -495,10 +589,12 @@ _contract_uninstall_deployments_solc() {
         "${_msg[*]}"
     fi
     _dir_clean \
-      "${_deployment_dir}"
+      "${_lib_dir}/deployments/${_target_contract}"
   done
   _dir_clean \
-    "${_contract_dir}"
+    "${_lib_dir}/deployments"
+  _dir_clean \
+    "${_lib_dir}"
 }
 
 _contract_deployment_dir_clean() {
@@ -530,11 +626,19 @@ _contract_uninstall_deployments_config() {
     _contract_dirs=() \
     _contract_versions=() \
     _contract_deployed_networks=() \
-    _libevm_config_convert_opts=() \
     _msg=() \
     _target_uninstall \
     _install_dir \
-    _network
+    _network \
+    _rm_opts=()
+  if [[ "${quiet}" == "n" ]]; then
+    _rm_opts+=(
+      -v
+    )
+  fi
+  _rm_opts+=(
+    -rf
+  )
   _msg=(
     "Uninstalling deployments configurations"
     "for '${_target_contract}'"
@@ -566,11 +670,12 @@ _contract_uninstall_deployments_config() {
             "${_msg[*]}"
         else
           rm \
-            -vrf \
+            "${_rm_opts[@]}" \
             "${_target_uninstall}"
-          _contract_deployment_dir_clean
         fi
       done
+      _dir_clean \
+        "${_install_dir}"
     else
       _msg=(
        "Found no deployment directory"
@@ -583,7 +688,8 @@ _contract_uninstall_deployments_config() {
        "${_msg[*]}"
     fi
   done
-  _contract_deployments_dir_clean
+  _dir_clean \
+    "${_contract_deployments_dir}"
 }
 
 _contract_uninstall_sources() {
@@ -595,17 +701,17 @@ _contract_uninstall_sources() {
     _contract_versions=() \
     _contract_deployed_networks=() \
     _install_dir \
-    _install_opts=() \
+    _rm_opts=() \
     _target_uninstall \
     _version \
     _msg=()
   if [[ "${quiet}" == "n" ]]; then
-    _install_opts+=(
+    _rm_opts+=(
       -v
     )
   fi
-  _install_opts+=(
-    -Dm644
+  _rm_opts+=(
+    -rf
   )
   _contract_install_common
   _contract_setup \
@@ -631,7 +737,7 @@ _contract_uninstall_sources() {
         "${_msg[*]}"
     else
       rm \
-        -vrf \
+        "${_rm_opts[@]}" \
         "${_target_uninstall}/${_version}"
     fi
   done
@@ -647,7 +753,7 @@ _contract_uninstall_sources() {
       "${_msg[*]}"
   else
     rm \
-      -vrf \
+      "${_rm_opts[@]}" \
       "${_target_uninstall}/${_version}"
   fi
     "${_target_uninstall}/${_version}/${_sol}"
@@ -783,7 +889,7 @@ _contract_install_deployments_hardhat() {
       -v
     )
   fi
-  install_opts+=(
+  _install_opts+=(
     -Dm644
   )
   _msg=(
@@ -962,7 +1068,7 @@ _evm_make() {
       "install_deployments_config"
       "install_deployments"
     )
-  if [[ "${_target_command}" == "uninstall" ]]; then
+  elif [[ "${_target_command}" == "uninstall" ]]; then
     _target_actions+=(
       "uninstall_deployments"
       "uninstall_deployments_config"
@@ -1049,7 +1155,6 @@ _evm_make() {
         "${_work_dir}" || \
       true
     fi
-
   done
   cd \
     "${_oldpwd}"
