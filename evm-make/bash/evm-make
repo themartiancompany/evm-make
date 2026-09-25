@@ -378,25 +378,45 @@ _contract_uninstall_clean() {
   fi
 }
 
-_contract_deployments_dir_clean() {
+_dir_clean() {
   local \
-    _contract_deployments_dir_contents
-  _contract_deployments_dir_contents="$(
+    _dir="${1}" \
+    _dir_contents \
+    _msg=()
+  if [[ ! -d "${_dir}" ]]; then
+    _msg=(
+      "Directory '${_dir}'"
+      "does not exist."
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      1
+  fi
+  _dir_contents="$(
     ls \
-      "${_contract_deployments_dir}")"
-  if [[ "${_contract_deployments_dir_contents}" == "" ]]; then
+      "${__dir}")"
+  if [[ "${_dir_contents}" == "" ]]; then
     rmdir \
       -v \
-      "${_contract_deployments_dir}"
+      "${_dir}"
   else
     _msg=(
       "Directory"
-      "'${_contract_deployments_dir}'"
+      "'${_dir}'"
       "not empty."
     )
     _msg_warning \
       "${_msg[*]}"
   fi
+}
+
+_contract_deployments_dir_clean() {
+  _dir_clean \
+    "${_contract_deployments_dir}"
+}
+
+_contract_version_deployment_dir_clean() {
+  _contract_deployment_dir_clean
 }
 
 _contract_uninstall_deployments_solc() {
@@ -414,14 +434,6 @@ _contract_uninstall_deployments_solc() {
     _install_dir \
     _network \
     _install_opts=()
-  if [[ "${quiet}" == "n" ]]; then
-    _install_opts+=(
-      -v
-    )
-  _install_opts+=(
-    -Dm644
-  )
-  fi
   _msg=(
     "Installing solc deployments artifacts"
     "for '${_target_contract}'."
@@ -439,17 +451,40 @@ _contract_uninstall_deployments_solc() {
       source \
         "${_config_file}"
       for _version in "${!contract_address[@]}"; do
+        # bookmark
         _deployment="${_network}/${_version}"
         _build_dir="${_work_dir}/${_deployment}"
         _install_dir="${_lib_dir}/deployments/${_target_contract}/${_deployment}"
-        install \
-          "${_install_opts[@]}" \
-          "${_build_dir}/${_abi}" \
-          "${_install_dir}/${_abi}"
-        install \
-          "${_install_opts[@]}" \
-          "${_build_dir}/${_bytecode}" \
-          "${_install_dir}/${_bytecode}"
+        if [[ ! -e "${_install_dir}/${_abi}" ]]; then
+          _msg=(
+            "Contract deployment ABI for"
+            "contract '${_target_contract}'"
+            "on network '${_network}' not found at"
+            "'${_install_dir}/${_abi}'."
+          )
+          _msg_warning \
+            "${_msg[*]}"
+        else
+          rm \
+            -vrf \
+            "${_install_dir}/${_abi}"
+        fi
+        if [[ ! -e "${_install_dir}/${_bytecode}" ]]; then
+          _msg=(
+            "Contract deployment bytecode for"
+            "contract '${_target_contract}'"
+            "on network '${_network}' not found at"
+            "'${_install_dir}/${_bytecode}'."
+          )
+          _msg_warning \
+            "${_msg[*]}"
+        else
+          rm \
+            -vrf \
+            "${_install_dir}/${_bytecode}"
+        fi
+        _dir_clean \
+          "${_install_dir}"
       done
     else
       _msg=(
@@ -459,10 +494,33 @@ _contract_uninstall_deployments_solc() {
       _msg_info \
         "${_msg[*]}"
     fi
+    _dir_clean \
+      "${_deployment_dir}"
   done
+  _dir_clean \
+    "${_contract_dir}"
 }
 
-
+_contract_deployment_dir_clean() {
+  local \
+    _install_dir_contents
+  _install_dir_contents="$(
+    ls \
+      "${_install_dir}")"
+  if [[ "${_install_dir_contents}" == "" ]]; then
+    rmdir \
+      -v \
+      "${_install_dir}"
+  else
+    _msg=(
+      "Directory"
+      "'${_install_dir}'"
+      "not empty."
+    )
+    _msg_warning \
+      "${_msg[*]}"
+  fi
+}
 
 _contract_uninstall_deployments_config() {
   local \
@@ -477,11 +535,6 @@ _contract_uninstall_deployments_config() {
     _target_uninstall \
     _install_dir \
     _network
-  if [[ "${quiet}" == "n" ]]; then
-    _libevm_config_convert_opts+=(
-      -v
-    )
-  fi
   _msg=(
     "Uninstalling deployments configurations"
     "for '${_target_contract}'"
@@ -515,7 +568,7 @@ _contract_uninstall_deployments_config() {
           rm \
             -vrf \
             "${_target_uninstall}"
-          _contract_uninstall_
+          _contract_deployment_dir_clean
         fi
       done
     else
@@ -665,10 +718,10 @@ _contract_install_deployments_solc() {
     _install_opts+=(
       -v
     )
+  fi
   _install_opts+=(
     -Dm644
   )
-  fi
   _msg=(
     "Installing solc deployments artifacts"
     "for '${_target_contract}'."
@@ -911,9 +964,9 @@ _evm_make() {
     )
   if [[ "${_target_command}" == "uninstall" ]]; then
     _target_actions+=(
-      "uninstall_sources"
-      "uninstall_deployments_config"
       "uninstall_deployments"
+      "uninstall_deployments_config"
+      "uninstall_sources"
     )
   elif [[ "${_target_command}" == \
             "build" || \
